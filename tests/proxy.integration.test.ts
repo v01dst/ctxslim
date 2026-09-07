@@ -12,7 +12,7 @@ const fakeServer = fileURLToPath(new URL("./fake-server.mjs", import.meta.url));
 
 const makeConfigFile = (servers: Record<string, { command: string; args: string[] }>): string => {
   const dir = mkdtempSync(join(tmpdir(), "ctxslim-it-"));
-  const path = join(dir, "context-slim.json");
+  const path = join(dir, "ctxslim.json");
   writeFileSync(path, JSON.stringify({ mcpServers: servers }));
   return path;
 };

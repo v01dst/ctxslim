@@ -1,24 +1,24 @@
-# Context Slim — Promotion Plan
+# CtxSlim — Promotion Plan
 
-Repo: https://github.com/v01dst/context-slim
+Repo: https://github.com/v01dst/ctxslim
 
 ## The hook (use this everywhere)
 
 > Your MCP servers burn 30k+ tokens before you even ask a question.
-> Context Slim cuts it by up to 72%. One config line. Zero API keys.
+> CtxSlim cuts it by up to 72%. One config line. Zero API keys.
 
 ## Accounts + assets
 
 - Avatar: use `assets/mascot.svg` (export to 400x400 PNG)
 - X/Reddit post image: export `assets/banner.svg` to 1280x640 PNG
-- Before/after screenshot: run `context-slim` with a TTY and capture stderr (the banner prints real token savings)
+- Before/after screenshot: run `ctxslim` with a TTY and capture stderr (the banner prints real token savings)
 
 ## Launch sequence (do it in this order, don't skip ahead)
 
 ### Day 0 — GitHub housekeeping
 1. npm publish (`npm publish` — makes the npx one-liner real; skip README claims until live)
 2. Pin the repo on your profile
-3. Add a live demo GIF to README (asciinema → GIF of `context-slim` banner + a client listing tools)
+3. Add a live demo GIF to README (asciinema → GIF of `ctxslim` banner + a client listing tools)
 
 ### Day 1 — X / Twitter thread (post at 9-11am EST, Tue-Thu)
 Pin the thread. Post 1 hooks, post 2 shows the fix, post 3 shows numbers + link.
@@ -37,7 +37,7 @@ Here's the fix ↓
 
 **Post 2 (the fix):**
 ```
-I built Context Slim: a proxy that sits between your MCP client and your servers.
+I built CtxSlim: a proxy that sits between your MCP client and your servers.
 
 - exposes only tools relevant to the current task
 - your agent pulls more via a search_tools meta-tool when it needs them
@@ -54,9 +54,9 @@ One entry replaces your whole mcpServers block.
 BEFORE: 33.4k tokens
 AFTER:   9.2k tokens  (−72.6%)
 
-npx -y context-slim
+npx -y ctxslim
 
-github.com/v01dst/context-slim ⭐
+github.com/v01dst/ctxslim ⭐
 [attach banner image]
 ```
 
@@ -66,11 +66,11 @@ Title: `I cut my MCP context usage from 33.4k to 9.2k tokens with a local proxy 
 Body: lead with the problem story (be honest that you built it), the benchmark table from the README, the config snippet, then the link. Reddit punishes link-only posts; rewards genuine build-in-public writeups. Reply to every comment.
 
 ### Day 3 — Hacker News
-Title: `Show HN: Context Slim – Cut MCP context bloat by 72% with a local proxy`
+Title: `Show HN: CtxSlim – Cut MCP context bloat by 72% with a local proxy`
 Submit at 8-10am EST weekdays. First comment: the honest technical story (why client-side tool lists are the bottleneck, how BM25 ranking works, what compression does, what's next: embeddings, TOML configs).
 
 ### Day 4+ — Community embeds
-1. GitHub discussions: r/mcp's awesome lists, `punkpeye/awesome-mcp-devtools` — open a PR adding Context Slim under devtools. This is the highest-converting link for MCP tooling.
+1. GitHub discussions: r/mcp's awesome lists, `punkpeye/awesome-mcp-devtools` — open a PR adding CtxSlim under devtools. This is the highest-converting link for MCP tooling.
 2. Discord servers: MCP community, Cursor, Claude developer Discords — #showcase channels.
 3. Answer existing questions about "MCP context bloat" / "too many MCP tools" on Reddit/Stack Overflow; mention the repo naturally in a genuinely helpful answer.
 

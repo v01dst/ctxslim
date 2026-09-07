@@ -1,11 +1,11 @@
 {
-  "name": "context-slim",
-  "version": "0.1.0",
+  "name": "ctxslim",
+  "version": "0.2.0",
   "description": "Put your MCP servers on a diet. A zero-config, 100% local proxy that cuts MCP context bloat.",
   "type": "module",
   "license": "MIT",
   "bin": {
-    "context-slim": "dist/index.js"
+    "ctxslim": "dist/index.js"
   },
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -39,7 +39,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/v01dst/context-slim.git"
+    "url": "git+https://github.com/v01dst/ctxslim.git"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",

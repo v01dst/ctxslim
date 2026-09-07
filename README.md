@@ -1,18 +1,18 @@
 <div align="center">
 
-<img src="assets/mascot.svg" alt="Slim — the Context Slim mascot" width="180"/>
+<img src="assets/mascot.svg" alt="Slim — the CtxSlim mascot" width="180"/>
 
-# Context Slim
+# CtxSlim
 
 **Your MCP servers are eating your context. Put them on a diet.**
 
-[![npm version](https://img.shields.io/npm/v/context-slim?style=flat-square&color=cb3837)](https://www.npmjs.com/package/context-slim)
-[![npm downloads](https://img.shields.io/npm/dm/context-slim?style=flat-square&color=blue)](https://www.npmjs.com/package/context-slim)
-[![CI](https://img.shields.io/github/actions/workflow/status/v01dst/context-slim/ci.yml?style=flat-square&label=CI)](https://github.com/v01dst/context-slim/actions)
+[![npm version](https://img.shields.io/npm/v/ctxslim?style=flat-square&color=cb3837)](https://www.npmjs.com/package/ctxslim)
+[![npm downloads](https://img.shields.io/npm/dm/ctxslim?style=flat-square&color=blue)](https://www.npmjs.com/package/ctxslim)
+[![CI](https://img.shields.io/github/actions/workflow/status/v01dst/ctxslim/ci.yml?style=flat-square&label=CI)](https://github.com/v01dst/ctxslim/actions)
 [![license](https://img.shields.io/badge/license-MIT-green?style=flat-square)](LICENSE)
-[![node](https://img.shields.io/node/v/context-slim?style=flat-square)](https://nodejs.org)
+[![node](https://img.shields.io/node/v/ctxslim?style=flat-square)](https://nodejs.org)
 [![PRs welcome](https://img.shields.io/badge/PRs-welcome-ff69b4?style=flat-square)](CONTRIBUTING.md)
-[![stars](https://img.shields.io/github/stars/v01dst/context-slim?style=flat-square&color=yellow)](https://github.com/v01dst/context-slim/stargazers)
+[![stars](https://img.shields.io/github/stars/v01dst/ctxslim?style=flat-square&color=yellow)](https://github.com/v01dst/ctxslim/stargazers)
 
 *One config entry. Every MCP server you already have. A fraction of the context.*
 
@@ -22,7 +22,7 @@
 
 Every MCP server you connect dumps its **entire tool catalog** into your LLM's context — every name, every description, every JSON Schema property. Connect a database server, a browser server and a GitHub server and you can burn **30,000+ tokens before you've asked a single question**. Your responses get slower, your bill gets bigger, and your agent gets dumber because it's drowning in tool definitions it doesn't need.
 
-**Context Slim is a proxy that fixes this.** It sits between your MCP client and your servers, exposes only the tools that matter for the current task, and compresses the schemas of what it does expose — with zero API keys, zero cloud calls, zero config rewriting.
+**CtxSlim is a proxy that fixes this.** It sits between your MCP client and your servers, exposes only the tools that matter for the current task, and compresses the schemas of what it does expose — with zero API keys, zero cloud calls, zero config rewriting.
 
 ## 📊 Measured savings
 
@@ -38,26 +38,33 @@ The more servers you stack, the more Slim saves. And that's with modest schemas 
 
 ## ⚡ Quick start
 
-Replace your stack of MCP server entries with a single one:
+**Option 1 — the one-liner.** Let CtxSlim wire itself into your client:
+
+```bash
+npx -y ctxslim init                # shows what it found on your machine
+npx -y ctxslim init --client cursor --yes   # writes it (with a backup first)
+```
+
+**Option 2 — manual.** Replace your stack of MCP server entries with a single one:
 
 ```json
 {
   "mcpServers": {
-    "context-slim": {
+    "ctxslim": {
       "command": "npx",
-      "args": ["-y", "context-slim"]
+      "args": ["-y", "ctxslim"]
     }
   }
 }
 ```
 
-That's it. Context Slim **auto-discovers** the servers already configured in your existing client config (read-only — your files are never modified) and connects to all of them itself.
+That's it. CtxSlim **auto-discovers** the servers already configured in your existing client config (read-only — your files are never modified) and connects to all of them itself.
 
 Works with:
 
 - **Claude Desktop** · **Claude Code** · **Cursor** · **Windsurf** · **VS Code**
-- Or point it at any config explicitly: `npx -y context-slim --config /path/to/mcp.json`
-- Or drop a `context-slim.json` in your project directory
+- Or point it at any config explicitly: `npx -y ctxslim --config /path/to/mcp.json`
+- Or drop a `ctxslim.json` in your project directory
 
 ```json
 {
@@ -76,7 +83,7 @@ Works with:
 
 ```mermaid
 flowchart LR
-    C[MCP Client<br/>Claude · Cursor · Codex] <--> S[Context Slim<br/>stdio proxy]
+    C[MCP Client<br/>Claude · Cursor · Codex] <--> S[CtxSlim<br/>stdio proxy]
     S <--> A[Server A<br/>files]
     S <--> B[Server B<br/>database]
     S <--> D[Server D<br/>browser]
@@ -108,21 +115,23 @@ Your agent gets four superpowers:
 ## 🛠 CLI
 
 ```
-context-slim                       start the proxy
-context-slim --config <path>       use a specific config
-context-slim --mode <mode>         auto | manual | off
-context-slim --max-tools <n>       override top-K (default 24)
-context-slim --no-stats            don't persist session stats
-context-slim --quiet               minimal logging
-context-slim stats                 show lifetime savings
-context-slim doctor                validate config + connectivity
+ctxslim                       start the proxy
+ctxslim init                  wire the proxy into a detected client config
+                              (--client <name|path>, --yes to write, backup included)
+ctxslim --config <path>       use a specific config
+ctxslim --mode <mode>         auto | manual | off
+ctxslim --max-tools <n>       override top-K (default 24)
+ctxslim --no-stats            don't persist session stats
+ctxslim --quiet               minimal logging
+ctxslim stats                 show lifetime savings
+ctxslim doctor                validate config + connectivity
 ```
 
-Session stats live in `~/.context-slim/stats.jsonl`. Run `context-slim stats` after a week of work and watch the cumulative savings.
+Session stats live in `~/.ctxslim/stats.jsonl`. Run `ctxslim stats` after a week of work and watch the cumulative savings.
 
 ## 🔒 Privacy
 
-Context Slim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. The optional stats file stays on your disk and never leaves it.
+CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. The optional stats file stays on your disk and never leaves it.
 
 ## ❓ FAQ
 
@@ -147,9 +156,9 @@ Contributions are genuinely welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) f
 
 ## ⭐ Star history
 
-If Context Slim saved you tokens, a star helps other developers find it:
+If CtxSlim saved you tokens, a star helps other developers find it:
 
-[![Star History Chart](https://api.star-history.com/svg?repos=v01dst/context-slim&type=Date)](https://github.com/v01dst/context-slim/stargazers)
+[![Star History Chart](https://api.star-history.com/svg?repos=v01dst/ctxslim&type=Date)](https://github.com/v01dst/ctxslim/stargazers)
 
 ## License
 

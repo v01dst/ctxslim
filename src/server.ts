@@ -57,7 +57,7 @@ export class ContextSlimServer {
     this.statsEnabled = opts.stats ?? config.slim?.stats ?? true;
     this.quiet = opts.quiet ?? false;
     this.server = new Server(
-      { name: "context-slim", version: "0.1.0" },
+      { name: "ctxslim", version: "0.2.0" },
       {
         capabilities: {
           tools: { listChanged: true },
@@ -84,11 +84,11 @@ export class ContextSlimServer {
 
   private log(message: string): void {
     if (this.quiet) return;
-    process.stderr.write(`${dim("[context-slim]")} ${message}\n`);
+    process.stderr.write(`${dim("[ctxslim]")} ${message}\n`);
   }
 
   private logError(message: string): void {
-    process.stderr.write(`${red("[context-slim]")} ${message}\n`);
+    process.stderr.write(`${red("[ctxslim]")} ${message}\n`);
   }
 
   async start(transport?: Transport): Promise<void> {
@@ -460,7 +460,7 @@ export class ContextSlimServer {
   printBanner(source: string): void {
     if (this.quiet) return;
     process.stderr.write(`${cyan(BANNER)}\n`);
-    process.stderr.write(`  ${bold("Context Slim")} ${dim("v0.1.0")} ${dim("— MCP without the bloat")}\n\n`);
+    process.stderr.write(`  ${bold("CtxSlim")} ${dim("v0.2.0")} ${dim("— MCP without the bloat")}\n\n`);
     process.stderr.write(`  ${dim("config")}   ${source}\n`);
     process.stderr.write(`  ${dim("mode")}     ${this.mode}\n`);
     if (this.tokensBefore > 0 && this.tokensAfter > 0 && this.mode !== "off") {

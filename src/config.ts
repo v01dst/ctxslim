@@ -5,7 +5,7 @@ import { compressTool, toolTokenCount } from "./compressor.js";
 import type { ContextSlimConfig, ServerEntry, SlimConfig, SlimMode, ToolDefinition } from "./types.js";
 import { DEFAULT_DESCRIPTION_BUDGET } from "./types.js";
 
-const IS_SLIM = /^(node\/)?(context-slim|@[\w.-]+\/context-slim)$/;
+const IS_SLIM = /^(node\/)?(ctxslim|@[\w.-]+\/ctxslim)$/;
 
 const looksLikeSlim = (entry: Record<string, unknown>): boolean => {
   const args = Array.isArray(entry.args) ? entry.args.map(String) : [];
@@ -89,10 +89,10 @@ export const loadConfig = (explicitPath?: string, cwd = process.cwd()): LoadedCo
     const raw = JSON.parse(readFileSync(path, "utf8"));
     return { config: normalizeConfig(raw, path), source: path, label: "config file" };
   }
-  const localPath = join(cwd, "context-slim.json");
+  const localPath = join(cwd, "ctxslim.json");
   if (existsSync(localPath)) {
     const raw = JSON.parse(readFileSync(localPath, "utf8"));
-    return { config: normalizeConfig(raw, localPath), source: localPath, label: "context-slim.json" };
+    return { config: normalizeConfig(raw, localPath), source: localPath, label: "ctxslim.json" };
   }
   const searched: string[] = [];
   for (const candidate of KNOWN_CLIENT_PATHS(home)) {
@@ -111,12 +111,12 @@ export const loadConfig = (explicitPath?: string, cwd = process.cwd()): LoadedCo
   }
   throw new Error(
     [
-      "No MCP config found. Context Slim looked for:",
+      "No MCP config found. CtxSlim looked for:",
       ...KNOWN_CLIENT_PATHS(home).map((candidate) => `  - ${candidate.path}`),
       "",
       "Fix it by doing one of:",
-      '  1. Run `context-slim --config /path/to/your/mcp.json`',
-      "  2. Create a context-slim.json in this directory",
+      '  1. Run `ctxslim --config /path/to/your/mcp.json`',
+      "  2. Create a ctxslim.json in this directory",
     ].join("\n")
   );
 };
@@ -142,7 +142,7 @@ export type SessionStats = {
   callsRouted: number;
 };
 
-const statsDir = (): string => process.env.CTX_SLIM_STATS_DIR ?? join(homedir(), ".context-slim");
+const statsDir = (): string => process.env.CTX_SLIM_STATS_DIR ?? join(homedir(), ".ctxslim");
 
 export const saveSessionStats = (stats: SessionStats): void => {
   try {

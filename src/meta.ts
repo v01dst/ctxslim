@@ -34,12 +34,12 @@ export const META_TOOLS: MetaToolDefinition[] = [
   },
   {
     name: "list_servers",
-    description: "List the MCP servers behind Context Slim with their connection status and tool counts.",
+    description: "List the MCP servers behind CtxSlim with their connection status and tool counts.",
     inputSchema: { type: "object", properties: {} },
   },
   {
     name: "slim_stats",
-    description: "Report how many tokens Context Slim saved this session.",
+    description: "Report how many tokens CtxSlim saved this session.",
     inputSchema: { type: "object", properties: {} },
   },
 ];

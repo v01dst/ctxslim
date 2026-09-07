@@ -21,9 +21,9 @@ describe("normalizeConfig", () => {
     expect(() => normalizeConfig({ mcpServers: { bad: { foo: 1 } } }, "test")).toThrow(/neither/);
   });
 
-  it("skips nested context-slim entries to avoid proxies of proxies", () => {
+  it("skips nested ctxslim entries to avoid proxies of proxies", () => {
     const config = normalizeConfig(
-      { mcpServers: { slim: { command: "npx", args: ["context-slim"] }, ok: { command: "node", args: ["x.js"] } } },
+      { mcpServers: { slim: { command: "npx", args: ["ctxslim"] }, ok: { command: "node", args: ["x.js"] } } },
       "test"
     );
     expect(Object.keys(config.mcpServers)).toEqual(["ok"]);
@@ -50,12 +50,12 @@ describe("loadConfig", () => {
     expect(loaded.config.mcpServers.a).toEqual({ command: "node", args: ["a.js"] });
   });
 
-  it("loads context-slim.json from cwd", () => {
+  it("loads ctxslim.json from cwd", () => {
     const dir = mkdtempSync(join(tmpdir(), "ctxslim-"));
     cleanup.push(dir);
-    writeFileSync(join(dir, "context-slim.json"), JSON.stringify({ mcpServers: { a: { command: "node" } } }));
+    writeFileSync(join(dir, "ctxslim.json"), JSON.stringify({ mcpServers: { a: { command: "node" } } }));
     const loaded = loadConfig(undefined, dir);
-    expect(loaded.label).toBe("context-slim.json");
+    expect(loaded.label).toBe("ctxslim.json");
   });
 
   it("fails with actionable error when nothing found", () => {

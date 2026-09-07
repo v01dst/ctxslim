@@ -1,10 +1,10 @@
-# Contributing to Context Slim
+# Contributing to CtxSlim
 
-Thanks for your interest in making Context Slim better. This document covers both the **how** and the **why** — because knowing why a rule exists is the difference between following it and resenting it.
+Thanks for your interest in making CtxSlim better. This document covers both the **how** and the **why** — because knowing why a rule exists is the difference between following it and resenting it.
 
 ## Why this project exists
 
-MCP clients pay a context tax for every connected server: full tool schemas in every prompt. Context Slim taxes that tax down to something reasonable. Every contribution should serve that single job — if a change doesn't reduce context, reduce friction, or increase trust in one of those, it probably belongs in a different project.
+MCP clients pay a context tax for every connected server: full tool schemas in every prompt. CtxSlim taxes that tax down to something reasonable. Every contribution should serve that single job — if a change doesn't reduce context, reduce friction, or increase trust in one of those, it probably belongs in a different project.
 
 ## The philosophy (read before your first PR)
 
@@ -21,8 +21,8 @@ MCP clients pay a context tax for every connected server: full tool schemas in e
 ## Getting started
 
 ```bash
-git clone https://github.com/v01dst/context-slim.git
-cd context-slim
+git clone https://github.com/v01dst/ctxslim.git
+cd ctxslim
 npm install
 npm test          # all 43 tests must pass
 npm run typecheck # strict type check
@@ -67,7 +67,7 @@ Not sure where to start? These are always open and genuinely useful:
 
 - **New client config support** — Codex reads TOML, Gemini CLI reads JSON, others exist. Each is a small, isolated `config.ts` addition plus a test.
 - **Compression rules** — real-world schemas have more junk than we strip. Found some? Add the rule and the test.
-- **Doctor improvements** — `context-slim doctor` should eventually try connecting to each server and report per-server health. It's the friendliest surface in the codebase.
+- **Doctor improvements** — `ctxslim doctor` should eventually try connecting to each server and report per-server health. It's the friendliest surface in the codebase.
 - **Docs** — if a paragraph in the README confused you, fixing it helps the next person. Docs PRs are merged with priority.
 
 ## Reporting bugs
@@ -76,12 +76,12 @@ Open an issue with:
 
 1. What you ran (exact command / config snippet — redact secrets).
 2. What happened vs. what you expected.
-3. Output of `context-slim doctor` if it's a connection issue.
-4. Your `context-slim --version` and Node version.
+3. Output of `ctxslim doctor` if it's a connection issue.
+4. Your `ctxslim --version` and Node version.
 
 ## Reporting security issues
 
-Do not open a public issue. Context Slim runs locally and talks to your configured servers, but if you've found something — a prototype pollution path in config parsing, a way to leak tool schemas off-machine — email or DM the maintainer directly. We'll credit you in the release notes.
+Do not open a public issue. CtxSlim runs locally and talks to your configured servers, but if you've found something — a prototype pollution path in config parsing, a way to leak tool schemas off-machine — email or DM the maintainer directly. We'll credit you in the release notes.
 
 ## Recognition
 

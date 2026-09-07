@@ -1,4 +1,4 @@
-# Context Slim — Design Spec
+# CtxSlim — Design Spec
 
 Date: 2026-09-07
 Status: Approved (compressed approval via chat)
@@ -12,22 +12,22 @@ slower responses, higher cost, degraded tool-call accuracy.
 
 ## Solution
 
-Context Slim is a zero-config MCP proxy. The client connects to Context Slim
-instead of the individual servers; Context Slim connects to all configured
+CtxSlim is a zero-config MCP proxy. The client connects to CtxSlim
+instead of the individual servers; CtxSlim connects to all configured
 servers upstream and presents one unified, dynamically-filtered surface.
 
 Key properties:
 - 100% local: no API keys, no network calls beyond the upstream MCP servers.
-- Drop-in: one entry in the MCP config (`npx -y context-slim`).
+- Drop-in: one entry in the MCP config (`npx -y ctxslim`).
 - Zero config: auto-discovers servers from the client's own config file.
 
 ## Architecture
 
-TypeScript / Node (ESM). Distribution: npm package `context-slim`.
+TypeScript / Node (ESM). Distribution: npm package `ctxslim`.
 
 ```
 src/
-  index.ts        CLI entry (bin). Subcommands: `context-slim`, `context-slim stats`, `--help`
+  index.ts        CLI entry (bin). Subcommands: `ctxslim`, `ctxslim stats`, `--help`
   server.ts       ProxyServer: MCP server facing the client + connections to upstreams
   config.ts       Config loader: reads existing client config (claude/cursor/etc) or CTX_SLIM_CONFIG
   ranker.ts       Relevance engine: BM25-ish lexical scoring over tool names/descriptions
@@ -57,7 +57,7 @@ src/
 
 ### Config discovery order
 1. `CTX_SLIM_CONFIG` env var (explicit path).
-2. `./context-slim.json` in cwd.
+2. `./ctxslim.json` in cwd.
 3. Auto-discovery of known client configs (Claude Desktop, Cursor, Windsurf,
    VS Code, Codex) — read-only; servers are proxied, config never modified.
 
@@ -71,8 +71,8 @@ for error normalization.
 ## Token accounting
 
 Estimated by chars/4 heuristic per schema + per result payload. Exposed via
-`slim_stats` and `context-slim stats` (after a session, from a local log in
-`~/.context-slim/stats.json`, opt-out via `--no-stats`).
+`slim_stats` and `ctxslim stats` (after a session, from a local log in
+`~/.ctxslim/stats.json`, opt-out via `--no-stats`).
 
 ## Error handling
 
@@ -96,7 +96,7 @@ Estimated by chars/4 heuristic per schema + per result payload. Exposed via
 
 ## Name / branding
 
-- Repo/package: `context-slim`
+- Repo/package: `ctxslim`
 - Tagline: "Your MCP servers are eating your context. Put them on a diet."
 - Mascot: slim pickle/jalapeño character ("Slim") — SVG in assets/, shown in
   README header and used as social avatar.

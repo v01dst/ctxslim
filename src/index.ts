@@ -1,23 +1,27 @@
 #!/usr/bin/env node
 import { loadConfig, loadStatsSummary, describeConfig } from "./config.js";
 import { ContextSlimServer } from "./server.js";
-import { BANNER, bold, cyan, dim, fmtTokens, green, red } from "./ui.js";
+import { BANNER, bold, cyan, dim, fmtTokens, green, red, yellow } from "./ui.js";
+import { applyInit, existingTargets, planInit, resolveTarget } from "./init.js";
 
 const usage = (): string =>
   [
     "",
-    `  ${bold("context-slim")} ${dim("— put your MCP servers on a diet")}`,
+    `  ${bold("ctxslim")} ${dim("— put your MCP servers on a diet")}`,
     "",
     `  ${cyan("Usage")}`,
-    `    context-slim                     Start the proxy (uses auto-discovered config)`,
-    `    context-slim --config <path>     Use a specific config file`,
-    `    context-slim --mode <mode>       auto | manual | off (default: auto)`,
-    `    context-slim --max-tools <n>     Max tools exposed per turn (default: 24)`,
-    `    context-slim --quiet             No banner, minimal logging`,
-    `    context-slim --no-stats          Don't write session stats to ~/.context-slim`,
-    `    context-slim stats               Show saved token savings`,
-    `    context-slim doctor              Check config and server connectivity`,
-    `    context-slim --help              This message`,
+    `    ctxslim                     Start the proxy (uses auto-discovered config)`,
+    `    ctxslim init [--client <name|path>] [--yes]`,
+    `                                Wire the proxy into a detected client config`,
+    `                                (default: preview only; --yes writes a backup first)`,
+    `    ctxslim --config <path>     Use a specific config file`,
+    `    ctxslim --mode <mode>       auto | manual | off (default: auto)`,
+    `    ctxslim --max-tools <n>     Max tools exposed per turn (default: 24)`,
+    `    ctxslim --quiet             No banner, minimal logging`,
+    `    ctxslim --no-stats          Don't write session stats to ~/.ctxslim`,
+    `    ctxslim stats               Show saved token savings`,
+    `    ctxslim doctor              Check config and server connectivity`,
+    `    ctxslim --help              This message`,
     "",
   ].join("\n");
 
@@ -28,6 +32,8 @@ type Args = {
   quiet?: boolean;
   noStats?: boolean;
   command?: string;
+  client?: string;
+  yes?: boolean;
 };
 
 const parseArgs = (argv: string[]): Args => {
@@ -38,6 +44,12 @@ const parseArgs = (argv: string[]): Args => {
       const value = argv[++i];
       if (!value) fail("--config requires a path");
       args.config = value;
+    } else if (arg === "--client") {
+      const value = argv[++i];
+      if (!value) fail("--client requires a name (cursor, claude-desktop, windsurf, vscode, claude-code) or a config path");
+      args.client = value;
+    } else if (arg === "--yes" || arg === "-y") {
+      args.yes = true;
     } else if (arg === "--mode") {
       const value = argv[++i];
       if (!value || !["auto", "manual", "off"].includes(value)) fail("--mode must be auto, manual or off");
@@ -54,9 +66,9 @@ const parseArgs = (argv: string[]): Args => {
       process.stdout.write(usage() + "\n");
       process.exit(0);
     } else if (arg === "--version" || arg === "-v") {
-      process.stdout.write("0.1.0\n");
+      process.stdout.write("0.2.0\n");
       process.exit(0);
-    } else if (arg === "stats" || arg === "doctor") {
+    } else if (arg === "stats" || arg === "doctor" || arg === "init") {
       args.command = arg;
     } else {
       fail(`Unknown argument: ${arg}`);
@@ -70,18 +82,79 @@ const fail = (message: string): never => {
   process.exit(1);
 };
 
-const printStats = (): void => {
-  const { summary } = loadStatsSummary();
-  if (summary.sessions === 0) {
+const runInit = (args: Args): void => {
+  const detected = existingTargets();
+  if (args.client) {
+    const resolved = resolveTarget(args.client) ?? fail(`Could not resolve client "${args.client}". Use a name (cursor, claude-desktop, windsurf, vscode, claude-code) or a config path.`);
+    const plan = planInit(resolved);
+    if (plan.error) fail(`${resolved.path} could not be parsed: ${plan.error}`);
+    if (plan.alreadyInstalled) {
+      process.stdout.write(`\n  ${yellow("!")} ctxslim is already installed in ${resolved.path} — nothing to do.\n\n`);
+      return;
+    }
+    if (!args.yes) {
+      process.stdout.write(
+        [
+          "",
+          `  ${bold("Preview")} ${dim(`(re-run with --yes to write)`)}`,
+          "",
+          `  target    ${resolved.path}`,
+          `  servers   ${plan.serverCount}`,
+          `  change    add "ctxslim" entry to mcpServers (npx -y ctxslim)`,
+          `  backup    written before any modification`,
+          "",
+        ].join("\n")
+      );
+      return;
+    }
+    const result = applyInit(resolved);
+    process.stdout.write(`\n  ${result.ok ? green("✓") : red("✗")} ${result.message}\n\n`);
+    if (!result.ok) process.exit(1);
+    return;
+  }
+  if (detected.length === 0) {
     process.stdout.write(
-      `  ${dim("No sessions recorded yet.")}\n  ${dim("Run context-slim with your MCP client and stats will appear here.")}\n`
+      [
+        "",
+        `  ${yellow("!")} No known client configs found on this machine.`,
+        "",
+        `  Run ${cyan("ctxslim init --client /path/to/config.json")} to target a file directly,`,
+        `  or create a ctxslim.json in your project and run ${cyan("ctxslim")}.`,
+        "",
+      ].join("\n")
     );
     return;
   }
   process.stdout.write(
     [
       "",
-      `  ${bold("Context Slim")} ${dim("— session history")}`,
+      `  ${bold("Detected client configs")}`,
+      "",
+      ...detected.map((target) => {
+        const plan = planInit(target);
+        const status = plan.alreadyInstalled ? green("installed") : plan.error ? red("unreadable") : yellow("not wired");
+        return `  ${status.padEnd(12)} ${target.label.padEnd(16)} ${dim(target.path)} ${dim(`(${plan.serverCount} servers)`)}`;
+      }),
+      "",
+      `  Wire one up:  ${cyan("ctxslim init --client cursor --yes")}`,
+      `  (a timestamped backup of the config is written first)`,
+      "",
+    ].join("\n")
+  );
+};
+
+const printStats = (): void => {
+  const { summary } = loadStatsSummary();
+  if (summary.sessions === 0) {
+    process.stdout.write(
+      `  ${dim("No sessions recorded yet.")}\n  ${dim("Run ctxslim with your MCP client and stats will appear here.")}\n`
+    );
+    return;
+  }
+  process.stdout.write(
+    [
+      "",
+      `  ${bold("CtxSlim")} ${dim("— session history")}`,
       "",
       `  sessions recorded   ${summary.sessions}`,
       `  tool calls routed   ${summary.totalCalls}`,
@@ -107,13 +180,17 @@ const runDoctor = (args: Args): void => {
   for (const line of describeConfig(loaded.config)) process.stdout.write(`${dim(line)}\n`);
   const slim = loaded.config.slim;
   process.stdout.write(`\n  mode: ${slim?.mode ?? "auto"}  maxTools: ${slim?.maxTools ?? 24}  stats: ${slim?.stats ?? true}\n`);
-  process.stdout.write(`\n  ${dim("run")} context-slim ${dim("to start the proxy and verify server connections.")}\n\n`);
+  process.stdout.write(`\n  ${dim("run")} ctxslim ${dim("to start the proxy and verify server connections.")}\n\n`);
 };
 
 const main = async (): Promise<void> => {
   const args = parseArgs(process.argv.slice(2));
   if (args.command === "stats") {
     printStats();
+    return;
+  }
+  if (args.command === "init") {
+    runInit(args);
     return;
   }
   if (args.command === "doctor") {
