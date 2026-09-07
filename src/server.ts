@@ -19,7 +19,7 @@ import { compressToolResult } from "./output.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
 import type { ContextSlimConfig, SlimMode, ToolDefinition } from "./types.js";
 import { META_TOOLS, formatSearchResults, formatServerList } from "./meta.js";
-import { ToolIndex, usageScore } from "./ranker.js";
+import { ToolIndex, adaptiveScore } from "./ranker.js";
 import type { UsageRecord } from "./ranker.js";
 import { loadUsageMap, saveSessionStats, saveUsageMap } from "./config.js";
 import type { SessionStats } from "./config.js";
@@ -270,9 +270,7 @@ export class ContextSlimServer {
     const base = scores.get(key) ?? 0;
     const pinned = this.pinned.has(key) ? 1000 : 0;
     if (!this.adaptiveOn) return base + pinned;
-    const usage = usageScore(this.usage.get(key), now);
-    const boost = 1 + Math.min(usage / 8, 1);
-    return base * boost + pinned + usage;
+    return adaptiveScore(base, this.usage.get(key), now) + pinned;
   }
 
   private calledUsageMap(): Record<string, UsageRecord> {

@@ -267,7 +267,7 @@ describe("proxy integration", () => {
     delete process.env.CTX_SLIM_STATS_DIR;
   });
 
-  it("usage boost ranks search-hit tools above non-hit tools in listTools", async () => {
+  it("usage influences ranking of searched tools", async () => {
     const dir = mkdtempSync(join(tmpdir(), "ctxslim-boost-"));
     cleanup.push(dir);
     process.env.CTX_SLIM_STATS_DIR = dir;

@@ -127,3 +127,8 @@ export const usageScore = (record: UsageRecord | undefined, now: number): number
   const frequency = Math.min(record.count * 0.5, 3);
   return recency * 4 + frequency;
 };
+
+export const adaptiveScore = (base: number, record: UsageRecord | undefined, now: number): number => {
+  const usage = usageScore(record, now);
+  return base * (1 + Math.min(usage / 8, 1)) + usage;
+};

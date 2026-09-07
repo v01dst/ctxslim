@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ToolIndex, tokenize, usageScore } from "../src/ranker.js";
+import { ToolIndex, adaptiveScore, tokenize, usageScore } from "../src/ranker.js";
 import type { ToolDefinition } from "../src/types.js";
 
 const tool = (name: string, description: string, properties: string[] = []): ToolDefinition => ({
@@ -61,6 +61,20 @@ describe("ToolIndex", () => {
     index.rebuild(entries);
     const hits = index.search("smtp recipient", 2);
     expect(hits[0]?.key).toBe("b::send_email");
+  });
+});
+
+describe("adaptiveScore", () => {
+  it("ranks lower-base recently-used tool above higher-base stale tool, the reverse of additive scoring", () => {
+    const NOW = 1_750_000_000_000;
+    const staleRecord = { count: 1, lastUsed: NOW - 63 * 60_000 };
+    const freshRecord = { count: 1, lastUsed: NOW };
+    const baseA = 12;
+    const baseB = 7;
+    const staleUsage = usageScore(staleRecord, NOW);
+    const freshUsage = usageScore(freshRecord, NOW);
+    expect(adaptiveScore(baseB, freshRecord, NOW)).toBeGreaterThan(adaptiveScore(baseA, staleRecord, NOW));
+    expect(baseB + freshUsage).toBeLessThan(baseA + staleUsage);
   });
 });
 
