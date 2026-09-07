@@ -10,7 +10,7 @@ import { loadStatsSummary } from "../src/config.js";
 
 const fakeServer = fileURLToPath(new URL("./fake-server.mjs", import.meta.url));
 
-const makeConfigFile = (servers: Record<string, { command: string; args: string[] }>): string => {
+const makeConfigFile = (servers: Record<string, { command: string; args: string[]; include?: string[]; exclude?: string[] }>): string => {
   const dir = mkdtempSync(join(tmpdir(), "ctxslim-it-"));
   const path = join(dir, "ctxslim.json");
   writeFileSync(path, JSON.stringify({ mcpServers: servers }));
@@ -205,5 +205,27 @@ describe("proxy integration", () => {
     expect(summary.sessions).toBeGreaterThanOrEqual(1);
     expect(summary.avgTokensBefore).toBeGreaterThan(summary.avgTokensAfter);
     delete process.env.CTX_SLIM_STATS_DIR;
+  });
+
+  it("exclude glob removes tools from exposure and routing", async () => {
+    const configFile = makeConfigFile({ alpha: { ...spawnEntry("alpha"), exclude: ["*_1"] } });
+    cleanup.push(configFile);
+    const { client } = await startProxy(configFile);
+    const { tools } = await client.listTools();
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("alpha_tool_0");
+    expect(names).not.toContain("alpha_tool_1");
+    const result = await client.callTool({ name: "alpha_tool_1", arguments: { id: "x" } });
+    expect(JSON.stringify(result)).toContain("Unknown tool");
+  });
+
+  it("include glob acts as allowlist", async () => {
+    const configFile = makeConfigFile({ alpha: { ...spawnEntry("alpha"), include: ["*_0"] } });
+    cleanup.push(configFile);
+    const { client } = await startProxy(configFile);
+    const { tools } = await client.listTools();
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("alpha_tool_0");
+    expect(names).not.toContain("alpha_tool_3");
   });
 });

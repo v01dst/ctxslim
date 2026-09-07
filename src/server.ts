@@ -14,6 +14,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerResult } from "@modelcontextprotocol/sdk/types.js";
 import { compressTool } from "./compressor.js";
+import { matchesAny } from "./glob.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
 import type { ContextSlimConfig, SlimMode, ToolDefinition } from "./types.js";
 import { META_TOOLS, formatSearchResults, formatServerList } from "./meta.js";
@@ -175,6 +176,14 @@ export class ContextSlimServer {
     return undefined;
   }
 
+  private toolAllowed(serverName: string, toolName: string): boolean {
+    const entry = this.config.mcpServers[serverName];
+    if (!entry) return false;
+    if (entry.exclude && entry.exclude.length > 0 && matchesAny(entry.exclude, toolName)) return false;
+    if (entry.include && entry.include.length > 0 && !matchesAny(entry.include, toolName)) return false;
+    return true;
+  }
+
   private rebuildIndex(): void {
     const entries: { key: string; tool: ToolDefinition; server: string }[] = [];
     this.promptRoutes.clear();
@@ -185,6 +194,7 @@ export class ContextSlimServer {
     for (const [serverName, upstream] of this.upstreams) {
       if (upstream.status !== "ready") continue;
       for (const tool of upstream.tools) {
+        if (!this.toolAllowed(serverName, tool.name)) continue;
         toolNames.set(tool.name, (toolNames.get(tool.name) ?? 0) + 1);
       }
       for (const prompt of upstream.prompts as PromptDefinition[]) {
@@ -201,6 +211,7 @@ export class ContextSlimServer {
     for (const [serverName, upstream] of this.upstreams) {
       if (upstream.status !== "ready") continue;
       for (const tool of upstream.tools) {
+        if (!this.toolAllowed(serverName, tool.name)) continue;
         const key = `${serverName}::${tool.name}`;
         entries.push({ key, tool, server: serverName });
       }
