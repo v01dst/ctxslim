@@ -1,0 +1,29 @@
+[
+  {
+    "scenario": "2 servers × 8 tools",
+    "servers": 2,
+    "tokensBefore": 7416,
+    "tokensAfterFullProxy": 6104,
+    "tokensAfterTop24": 6104,
+    "savingsFullPct": 17.7,
+    "savingsTop24Pct": 17.7
+  },
+  {
+    "scenario": "4 servers × 10 tools",
+    "servers": 4,
+    "tokensBefore": 18540,
+    "tokensAfterFullProxy": 15260,
+    "tokensAfterTop24": 9154,
+    "savingsFullPct": 17.7,
+    "savingsTop24Pct": 50.6
+  },
+  {
+    "scenario": "6 servers × 12 tools",
+    "servers": 6,
+    "tokensBefore": 33358,
+    "tokensAfterFullProxy": 27460,
+    "tokensAfterTop24": 9156,
+    "savingsFullPct": 17.7,
+    "savingsTop24Pct": 72.6
+  }
+]

@@ -1,0 +1,54 @@
+{
+  "name": "context-slim",
+  "version": "0.1.0",
+  "description": "Put your MCP servers on a diet. A zero-config, 100% local proxy that cuts MCP context bloat.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "context-slim": "dist/index.js"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "bench": "tsx scripts/bench.ts"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "context",
+    "tokens",
+    "llm",
+    "ai",
+    "proxy",
+    "claude",
+    "cursor",
+    "agent"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/v01dst/context-slim.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.8"
+  }
+}
