@@ -32,6 +32,11 @@ describe("normalizeConfig", () => {
   it("rejects invalid mode", () => {
     expect(() => normalizeConfig({ mcpServers: { ok: { command: "node" } }, slim: { mode: "turbo" } }, "test")).toThrow(/mode/);
   });
+
+  it("normalizes connectTimeout", () => {
+    const config = normalizeConfig({ mcpServers: { ok: { command: "node" } }, slim: { connectTimeout: 45000 } }, "test");
+    expect(config.slim?.connectTimeout).toBe(45000);
+  });
 });
 
 describe("loadConfig", () => {

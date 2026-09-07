@@ -20,6 +20,7 @@ export type SlimConfig = {
   pins?: string[];
   allowlist?: string[];
   descriptionBudget?: number;
+  connectTimeout?: number;
   stats?: boolean;
 };
 

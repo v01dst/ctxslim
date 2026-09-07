@@ -82,6 +82,12 @@ export class ContextSlimServer {
       : DEFAULT_DESCRIPTION_BUDGET;
   }
 
+  private get connectTimeout(): number {
+    return this.config.slim?.connectTimeout && this.config.slim.connectTimeout > 0
+      ? this.config.slim.connectTimeout
+      : 15000;
+  }
+
   private log(message: string): void {
     if (this.quiet) return;
     process.stderr.write(`${dim("[ctxslim]")} ${message}\n`);
@@ -105,7 +111,7 @@ export class ContextSlimServer {
       this.upstreams.set(name, upstream);
       return { name, upstream };
     });
-    const results = await Promise.allSettled(upstreams.map(({ upstream }) => upstream.start()));
+    const results = await Promise.allSettled(upstreams.map(({ upstream }) => upstream.start(this.connectTimeout)));
     const failed = results.filter((result) => result.status === "rejected");
     for (let i = 0; i < upstreams.length; i += 1) {
       const { name } = upstreams[i]!;

@@ -58,6 +58,7 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
     ...(Array.isArray(slimRaw.pins) ? { pins: slimRaw.pins.map(String) } : {}),
     ...(Array.isArray(slimRaw.allowlist) ? { allowlist: slimRaw.allowlist.map(String) } : {}),
     ...(slimRaw.descriptionBudget !== undefined ? { descriptionBudget: Number(slimRaw.descriptionBudget) } : {}),
+    ...(slimRaw.connectTimeout !== undefined ? { connectTimeout: Number(slimRaw.connectTimeout) } : {}),
     ...(slimRaw.stats !== undefined ? { stats: Boolean(slimRaw.stats) } : {}),
   };
   return { mcpServers, slim };
@@ -88,6 +89,15 @@ export const loadConfig = (explicitPath?: string, cwd = process.cwd()): LoadedCo
     }
     const raw = JSON.parse(readFileSync(path, "utf8"));
     return { config: normalizeConfig(raw, path), source: path, label: "config file" };
+  }
+  const envPath = process.env.CTX_SLIM_CONFIG;
+  if (envPath) {
+    const path = resolve(envPath);
+    if (!existsSync(path)) {
+      throw new Error(`CTX_SLIM_CONFIG points to a missing file: ${path}`);
+    }
+    const raw = JSON.parse(readFileSync(path, "utf8"));
+    return { config: normalizeConfig(raw, path), source: path, label: "CTX_SLIM_CONFIG" };
   }
   const localPath = join(cwd, "ctxslim.json");
   if (existsSync(localPath)) {
