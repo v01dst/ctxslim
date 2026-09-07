@@ -249,4 +249,21 @@ describe("proxy integration", () => {
     expect(text).toContain("END-SENTINEL");
     expect(text).not.toContain("[ctxslim: truncated");
   });
+
+  it("adaptive ranking surfaces frequently used tools across sessions", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxslim-adaptive-"));
+    cleanup.push(dir);
+    process.env.CTX_SLIM_STATS_DIR = dir;
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha", 30), beta: spawnEntry("beta", 30) });
+    cleanup.push(configFile);
+    const { saveUsageMap } = await import("../src/config.js");
+    saveUsageMap({ "alpha::alpha_tool_25": { count: 50, lastUsed: Date.now() } });
+    const { client } = await startProxy(configFile, { maxTools: 8 });
+    const { tools } = await client.listTools();
+    const names = tools
+      .filter((tool) => !["search_tools", "enable_tools", "list_servers", "slim_stats"].includes(tool.name))
+      .map((tool) => tool.name);
+    expect(names).toContain("alpha_tool_25");
+    delete process.env.CTX_SLIM_STATS_DIR;
+  });
 });

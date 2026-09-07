@@ -1,7 +1,8 @@
-import { readFileSync, existsSync, mkdirSync, appendFileSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, mkdirSync, appendFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { compressTool, toolTokenCount } from "./compressor.js";
+import type { UsageRecord } from "./ranker.js";
 import type { ContextSlimConfig, ServerEntry, SlimConfig, SlimMode, ToolDefinition } from "./types.js";
 import { DEFAULT_DESCRIPTION_BUDGET } from "./types.js";
 
@@ -218,3 +219,33 @@ export const computeSessionTokens = (
 export const statsFilePath = (): string => join(statsDir(), "stats.jsonl");
 
 export const configDir = dirname(statsDir());
+
+export const usageFilePath = (): string => join(statsDir(), "usage.json");
+
+export const loadUsageMap = (): Record<string, UsageRecord> => {
+  try {
+    const file = usageFilePath();
+    if (!existsSync(file)) return {};
+    const parsed = JSON.parse(readFileSync(file, "utf8")) as Record<string, unknown>;
+    const clean: Record<string, UsageRecord> = {};
+    for (const [key, value] of Object.entries(parsed)) {
+      const record = value as Partial<UsageRecord> | undefined;
+      if (typeof record?.count === "number" && typeof record?.lastUsed === "number") {
+        clean[key] = { count: record.count, lastUsed: record.lastUsed };
+      }
+    }
+    return clean;
+  } catch {
+    return {};
+  }
+};
+
+export const saveUsageMap = (map: Record<string, UsageRecord>): void => {
+  try {
+    const dir = statsDir();
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(usageFilePath(), JSON.stringify(map));
+  } catch {
+    return;
+  }
+};
