@@ -1,11 +1,17 @@
-export type StdioServerEntry = {
+export type ServerEntryBase = {
+  include?: string[];
+  exclude?: string[];
+  output?: { maxChars?: number };
+};
+
+export type StdioServerEntry = ServerEntryBase & {
   command: string;
   args?: string[];
   env?: Record<string, string>;
   cwd?: string;
 };
 
-export type HttpServerEntry = {
+export type HttpServerEntry = ServerEntryBase & {
   url: string;
   headers?: Record<string, string>;
 };
@@ -22,6 +28,7 @@ export type SlimConfig = {
   descriptionBudget?: number;
   connectTimeout?: number;
   stats?: boolean;
+  adaptive?: boolean;
 };
 
 export type ContextSlimConfig = {

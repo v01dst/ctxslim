@@ -37,6 +37,43 @@ describe("normalizeConfig", () => {
     const config = normalizeConfig({ mcpServers: { ok: { command: "node" } }, slim: { connectTimeout: 45000 } }, "test");
     expect(config.slim?.connectTimeout).toBe(45000);
   });
+
+  describe("globs, output and adaptive config", () => {
+    it("parses include/exclude globs on stdio entries", () => {
+      const config = normalizeConfig(
+        { mcpServers: { alpha: { command: "node", args: ["x"], include: ["browser_*"], exclude: ["*_debug*"] } } },
+        "test"
+      );
+      expect(config.mcpServers.alpha).toMatchObject({ include: ["browser_*"], exclude: ["*_debug*"] });
+    });
+
+    it("parses include/exclude globs on http entries", () => {
+      const config = normalizeConfig(
+        { mcpServers: { web: { url: "https://example.com/mcp", exclude: ["*admin*"] } } },
+        "test"
+      );
+      expect(config.mcpServers.web).toMatchObject({ exclude: ["*admin*"] });
+    });
+
+    it("parses output.maxChars per server", () => {
+      const config = normalizeConfig(
+        { mcpServers: { alpha: { command: "node", args: ["x"], output: { maxChars: 4000 } } } },
+        "test"
+      );
+      expect(config.mcpServers.alpha).toMatchObject({ output: { maxChars: 4000 } });
+    });
+
+    it("rejects non-positive output.maxChars", () => {
+      expect(() =>
+        normalizeConfig({ mcpServers: { alpha: { command: "node", output: { maxChars: 0 } } } }, "test")
+      ).toThrow(/maxChars/);
+    });
+
+    it("parses slim.adaptive kill switch", () => {
+      const config = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { adaptive: false } }, "test");
+      expect(config.slim?.adaptive).toBe(false);
+    });
+  });
 });
 
 describe("loadConfig", () => {

@@ -34,12 +34,26 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
         ...(Array.isArray(e.args) ? { args: e.args.map(String) } : {}),
         ...(e.env && typeof e.env === "object" ? { env: e.env as Record<string, string> } : {}),
         ...(typeof e.cwd === "string" ? { cwd: e.cwd } : {}),
+        ...(Array.isArray(e.include) ? { include: e.include.map(String) } : {}),
+        ...(Array.isArray(e.exclude) ? { exclude: e.exclude.map(String) } : {}),
+        ...(e.output && typeof e.output === "object" ? { output: e.output as { maxChars?: number } } : {}),
       };
+      const output = (mcpServers[name] as { output?: { maxChars?: number } }).output;
+      if (output && (typeof output.maxChars !== "number" || output.maxChars <= 0)) {
+        throw new Error(`Server "${name}" in ${source} has invalid output.maxChars (must be a positive number)`);
+      }
     } else if (typeof e.url === "string") {
       mcpServers[name] = {
         url: e.url,
         ...(e.headers && typeof e.headers === "object" ? { headers: e.headers as Record<string, string> } : {}),
+        ...(Array.isArray(e.include) ? { include: e.include.map(String) } : {}),
+        ...(Array.isArray(e.exclude) ? { exclude: e.exclude.map(String) } : {}),
+        ...(e.output && typeof e.output === "object" ? { output: e.output as { maxChars?: number } } : {}),
       };
+      const output = (mcpServers[name] as { output?: { maxChars?: number } }).output;
+      if (output && (typeof output.maxChars !== "number" || output.maxChars <= 0)) {
+        throw new Error(`Server "${name}" in ${source} has invalid output.maxChars (must be a positive number)`);
+      }
     } else {
       throw new Error(`Server "${name}" in ${source} has neither "command" nor "url"`);
     }
@@ -60,6 +74,7 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
     ...(slimRaw.descriptionBudget !== undefined ? { descriptionBudget: Number(slimRaw.descriptionBudget) } : {}),
     ...(slimRaw.connectTimeout !== undefined ? { connectTimeout: Number(slimRaw.connectTimeout) } : {}),
     ...(slimRaw.stats !== undefined ? { stats: Boolean(slimRaw.stats) } : {}),
+    ...(slimRaw.adaptive !== undefined ? { adaptive: Boolean(slimRaw.adaptive) } : {}),
   };
   return { mcpServers, slim };
 };
