@@ -41,6 +41,7 @@ export class ContextSlimServer {
   private readonly resolved = new Map<string, ResolvedTool>();
   private readonly routeByExposedName = new Map<string, string>();
   private readonly usage = new Map<string, UsageRecord>();
+  private readonly calledKeys = new Set<string>();
   private readonly pinned = new Set<string>();
   private readonly promptRoutes = new Map<string, { server: string; name: string }>();
   private readonly resourceRoutes = new Map<string, string>();
@@ -69,7 +70,7 @@ export class ContextSlimServer {
         },
       }
     );
-    if (config.slim?.adaptive !== false) {
+    if (this.adaptiveOn) {
       for (const [key, record] of Object.entries(loadUsageMap())) {
         const existing = this.usage.get(key);
         this.usage.set(key, {
@@ -82,6 +83,10 @@ export class ContextSlimServer {
 
   get mode(): SlimMode {
     return this.config.slim?.mode ?? "auto";
+  }
+
+  private get adaptiveOn(): boolean {
+    return this.config.slim?.adaptive !== false;
   }
 
   private get maxTools(): number {
@@ -264,16 +269,27 @@ export class ContextSlimServer {
   private scoreKey(key: string, scores: Map<string, number>, now: number): number {
     const base = scores.get(key) ?? 0;
     const pinned = this.pinned.has(key) ? 1000 : 0;
+    if (!this.adaptiveOn) return base + pinned;
     const usage = usageScore(this.usage.get(key), now);
     const boost = 1 + Math.min(usage / 8, 1);
     return base * boost + pinned + usage;
   }
 
+  private calledUsageMap(): Record<string, UsageRecord> {
+    const map: Record<string, UsageRecord> = {};
+    for (const key of this.calledKeys) {
+      const record = this.usage.get(key);
+      if (record) map[key] = record;
+    }
+    return map;
+  }
+
   private maybeSaveUsage(): void {
+    if (!this.adaptiveOn) return;
     const now = Date.now();
     if (now - this.lastUsageSave > 30000) {
       this.lastUsageSave = now;
-      saveUsageMap(Object.fromEntries(this.usage));
+      saveUsageMap(this.calledUsageMap());
     }
   }
 
@@ -361,6 +377,7 @@ export class ContextSlimServer {
         count: (this.usage.get(key)?.count ?? 0) + 1,
         lastUsed: Date.now(),
       });
+      this.calledKeys.add(key);
       this.maybeSaveUsage();
       this.callsRouted += 1;
       return finalResult;
@@ -474,7 +491,7 @@ export class ContextSlimServer {
   async stop(): Promise<void> {
     if (this.statsEnabled && this.started) {
       this.writeSessionStats();
-      if (this.config.slim?.adaptive !== false) saveUsageMap(Object.fromEntries(this.usage));
+      if (this.adaptiveOn) saveUsageMap(this.calledUsageMap());
     }
     await Promise.allSettled([...this.upstreams.values()].map((upstream) => upstream.close()));
     try {

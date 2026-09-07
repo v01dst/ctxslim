@@ -1,10 +1,13 @@
 import { mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, afterAll } from "vitest";
 import { loadUsageMap, saveUsageMap } from "../src/config.js";
 
 describe("usage persistence", () => {
+  afterAll(() => {
+    delete process.env.CTX_SLIM_STATS_DIR;
+  });
   it("round-trips a usage map", () => {
     const dir = mkdtempSync(join(tmpdir(), "ctxslim-usage-"));
     process.env.CTX_SLIM_STATS_DIR = dir;

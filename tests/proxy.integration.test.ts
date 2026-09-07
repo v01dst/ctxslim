@@ -266,4 +266,37 @@ describe("proxy integration", () => {
     expect(names).toContain("alpha_tool_25");
     delete process.env.CTX_SLIM_STATS_DIR;
   });
+
+  it("usage boost ranks search-hit tools above non-hit tools in listTools", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxslim-boost-"));
+    cleanup.push(dir);
+    process.env.CTX_SLIM_STATS_DIR = dir;
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha", 30), beta: spawnEntry("beta", 30) });
+    cleanup.push(configFile);
+    try {
+      const { client } = await startProxy(configFile, { maxTools: 12 });
+
+      const hitNames = async (query: string): Promise<string[]> => {
+        const result = (await client.callTool({ name: "search_tools", arguments: { query } })) as {
+          content: { type: string; text: string }[];
+        };
+        const text = result.content[0]?.text ?? "";
+        return [...text.matchAll(/^### (.+)$/gm)].map((match) => match[1]!);
+      };
+
+      const bigHits = await hitNames("big output");
+      const alphaHits = await hitNames("alpha");
+      expect(bigHits).toEqual(["alpha_tool_0__big", "beta_tool_0__big"]);
+      expect(alphaHits).toEqual(["alpha_tool_0", "alpha_tool_1", "alpha_tool_2", "alpha_tool_3", "alpha_tool_4", "alpha_tool_5", "alpha_tool_6", "alpha_tool_7"]);
+
+      const { tools } = await client.listTools();
+      const nonMeta = tools
+        .filter((tool) => !["search_tools", "enable_tools", "list_servers", "slim_stats"].includes(tool.name))
+        .map((tool) => tool.name);
+      expect(nonMeta).toHaveLength(12);
+      expect(nonMeta.slice(0, 10).sort()).toEqual([...bigHits, ...alphaHits].sort());
+    } finally {
+      delete process.env.CTX_SLIM_STATS_DIR;
+    }
+  });
 });
