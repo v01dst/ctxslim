@@ -15,6 +15,7 @@ import {
 import type { ServerResult } from "@modelcontextprotocol/sdk/types.js";
 import { compressTool } from "./compressor.js";
 import { matchesAny } from "./glob.js";
+import { compressToolResult } from "./output.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
 import type { ContextSlimConfig, SlimMode, ToolDefinition } from "./types.js";
 import { META_TOOLS, formatSearchResults, formatServerList } from "./meta.js";
@@ -335,12 +336,14 @@ export class ContextSlimServer {
     }
     try {
       const result = await upstream.callTool(resolvedTool.originalName, args);
+      const maxChars = this.config.mcpServers[resolvedTool.server]?.output?.maxChars;
+      const finalResult = maxChars ? compressToolResult(result, maxChars).result : result;
       this.usage.set(key, {
         count: (this.usage.get(key)?.count ?? 0) + 1,
         lastUsed: Date.now(),
       });
       this.callsRouted += 1;
-      return result;
+      return finalResult;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       return { content: [{ type: "text", text: `Tool "${exposedName}" failed: ${message}` }], isError: true };

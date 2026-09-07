@@ -49,11 +49,18 @@ const fatSchema = (index) => ({
   },
 });
 
-const tools = Array.from({ length: toolCount }, (_, index) => ({
-  name: `${serverName}_tool_${index}`,
-  description: `${bigDescription} Tool ${index} of server ${serverName}.`,
-  inputSchema: fatSchema(index),
-}));
+const tools = [
+  ...Array.from({ length: toolCount }, (_, index) => ({
+    name: `${serverName}_tool_${index}`,
+    description: `${bigDescription} Tool ${index} of server ${serverName}.`,
+    inputSchema: fatSchema(index),
+  })),
+  {
+    name: `${serverName}_tool_0__big`,
+    description: `${bigDescription} Big-output variant of tool 0 of server ${serverName}.`,
+    inputSchema: fatSchema(0),
+  },
+];
 
 const reply = (id, result) => {
   process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id, result }) + "\n");
@@ -78,7 +85,10 @@ const handle = (message) => {
       break;
     case "tools/call": {
       const name = message.params?.name ?? "unknown";
-      reply(message.id, { content: [{ type: "text", text: `${serverName} handled ${name}` }] });
+      const text = name.endsWith("__big")
+        ? `TRUNCATION-SENTINEL${"payload ".repeat(4000)}END-SENTINEL`
+        : `${serverName} handled ${name}`;
+      reply(message.id, { content: [{ type: "text", text }] });
       break;
     }
     case "prompts/list":

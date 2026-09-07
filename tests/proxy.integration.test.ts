@@ -10,7 +10,7 @@ import { loadStatsSummary } from "../src/config.js";
 
 const fakeServer = fileURLToPath(new URL("./fake-server.mjs", import.meta.url));
 
-const makeConfigFile = (servers: Record<string, { command: string; args: string[]; include?: string[]; exclude?: string[] }>): string => {
+const makeConfigFile = (servers: Record<string, { command: string; args: string[]; include?: string[]; exclude?: string[]; output?: { maxChars?: number } }>): string => {
   const dir = mkdtempSync(join(tmpdir(), "ctxslim-it-"));
   const path = join(dir, "ctxslim.json");
   writeFileSync(path, JSON.stringify({ mcpServers: servers }));
@@ -54,7 +54,7 @@ describe("proxy integration", () => {
     expect(names).toContain("enable_tools");
     expect(names).toContain("list_servers");
     expect(names).toContain("slim_stats");
-    expect(tools).toHaveLength(16);
+    expect(tools).toHaveLength(18);
   });
 
   it("compresses exposed schemas", async () => {
@@ -147,7 +147,7 @@ describe("proxy integration", () => {
     activeServers.push(slimServer);
 
     const { tools } = await client.listTools();
-    expect(tools).toHaveLength(6);
+    expect(tools).toHaveLength(7);
     const first = tools[0];
     const schema = first?.inputSchema as Record<string, unknown>;
     expect(schema.$schema).toBeDefined();
@@ -227,5 +227,26 @@ describe("proxy integration", () => {
     const names = tools.map((tool) => tool.name);
     expect(names).toContain("alpha_tool_0");
     expect(names).not.toContain("alpha_tool_3");
+  });
+
+  it("truncates oversized results with head+tail when output.maxChars is set", async () => {
+    const configFile = makeConfigFile({ alpha: { ...spawnEntry("alpha"), output: { maxChars: 500 } } });
+    cleanup.push(configFile);
+    const { client } = await startProxy(configFile);
+    const result = await client.callTool({ name: "alpha_tool_0__big", arguments: {} });
+    const text = JSON.stringify(result);
+    expect(text).toContain("[ctxslim: truncated");
+    expect(text).toContain("END-SENTINEL");
+    expect(text.length).toBeLessThan(2000);
+  });
+
+  it("does not compress results when output is not configured", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { client } = await startProxy(configFile);
+    const result = await client.callTool({ name: "alpha_tool_0__big", arguments: {} });
+    const text = JSON.stringify(result);
+    expect(text).toContain("END-SENTINEL");
+    expect(text).not.toContain("[ctxslim: truncated");
   });
 });
