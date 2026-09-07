@@ -1,0 +1,11 @@
+=== TWEET 1 ===
+409 chars
+https://twitter.com/intent/tweet?text=Your%20MCP%20servers%20are%20eating%20your%20context.%0A%0A6%20servers%20%3D%2033.4k%20tokens%20gone%20before%20you%20even%20ask%20a%20single%20question.%0A%0AI%20built%20ctxslim%20%E2%80%94%20a%20100%25%20local%20proxy%20that%20exposes%20only%20the%20tools%20that%20matter.%20Cut%20mine%20by%2072%25.%0A%0Anpx%20-y%20ctxslim%0Ahttps%3A%2F%2Fgithub.com%2Fv01dst%2Fctxslim
+
+=== TWEET 2 (post after tweet1, replace FIRST_TWEET_ID) ===
+426 chars
+https://twitter.com/intent/tweet?text=How%20it%20works%3A%0A%0A%E2%80%A2%20ranks%20tools%20per%20task%2C%20exposes%20top-K%0A%E2%80%A2%20your%20agent%20pulls%20more%20via%20a%20search_tools%20meta-tool%0A%E2%80%A2%20compresses%20every%20exposed%20schema%0A%E2%80%A2%20zero%20API%20keys%2C%20zero%20cloud%2C%20zero%20config%20rewriting%0A%0AOne%20entry%20replaces%20your%20whole%20mcpServers%20block.&in_reply_to=FIRST_TWEET_ID
+
+=== REDDIT r/mcp ===
+928 chars
+https://www.reddit.com/r/mcp/submit?title=I%20cut%20my%20MCP%20context%20usage%20from%2033.4k%20to%209.2k%20tokens%20with%20a%20local%20proxy%20(no%20API%20keys)&selftext=Every%20MCP%20server%20you%20connect%20dumps%20its%20full%20tool%20catalog%20into%20your%20LLM%20context%20%E2%80%94%20I%20measured%2033.4k%20tokens%20across%206%20servers%20before%20asking%20anything.%0A%0AI%20built%20ctxslim%3A%20a%20local%20MCP%20proxy%20that%20ranks%20tools%20per%20task%2C%20exposes%20only%20the%20top%20ones%2C%20and%20lets%20the%20agent%20pull%20more%20on%20demand%20via%20a%20search_tools%20meta-tool.%20Measured%20through%20real%20MCP%20transports%3A%2033.4k%20%E2%86%92%209.2k%20tokens%20(%E2%88%9272.6%25).%0A%0AZero%20API%20keys%2C%20100%25%20local%2C%20one%20config%20line%3A%0Anpx%20-y%20ctxslim%0A%0AMIT%2C%20TypeScript%2C%2055%20tests.%20Benchmark%20%2B%20details%3A%20https%3A%2F%2Fgithub.com%2Fv01dst%2Fctxslim&submit=true
