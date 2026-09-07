@@ -1,10 +1,12 @@
 <div align="center">
 
-<img src="assets/mascot.svg" alt="Slim — the CtxSlim mascot" width="180"/>
+<img src="assets/mascot.svg" alt="Slim — the CtxSlim mascot" width="160"/>
 
 # CtxSlim
 
 **Your MCP servers are eating your context. Put them on a diet.**
+
+<img src="assets/banner.png" alt="CtxSlim — 33.4k tokens down to 9.2k, a 72.6% reduction" width="100%"/>
 
 [![npm version](https://img.shields.io/npm/v/ctxslim?style=flat-square&color=cb3837)](https://www.npmjs.com/package/ctxslim)
 [![npm downloads](https://img.shields.io/npm/dm/ctxslim?style=flat-square&color=blue)](https://www.npmjs.com/package/ctxslim)
@@ -38,11 +40,11 @@ The more servers you stack, the more Slim saves. And that's with modest schemas 
 
 ## ⚡ Quick start
 
-**Option 1 — the one-liner.** Let CtxSlim wire itself into your client:
+**Option 1 — the one-liner.** Wire CtxSlim into your client (Claude Desktop, Cursor, Windsurf, VS Code, Claude Code) in seconds:
 
 ```bash
-npx -y ctxslim init                # shows what it found on your machine
-npx -y ctxslim init --client cursor --yes   # writes it (with a backup first)
+npx -y ctxslim init                          # preview: shows what it found on your machine
+npx -y ctxslim init --client cursor --yes    # writes it (timestamped backup included)
 ```
 
 **Option 2 — manual.** Replace your stack of MCP server entries with a single one:
@@ -62,9 +64,12 @@ That's it. CtxSlim **auto-discovers** the servers already configured in your exi
 
 Works with:
 
-- **Claude Desktop** · **Claude Code** · **Cursor** · **Windsurf** · **VS Code**
+- **Claude Desktop** · **Claude Code** · **Cursor** · **Windsurf** · **VS Code** · anything that speaks MCP
 - Or point it at any config explicitly: `npx -y ctxslim --config /path/to/mcp.json`
+- Or set `CTX_SLIM_CONFIG=/path/to/mcp.json`
 - Or drop a `ctxslim.json` in your project directory
+
+Keep your servers as they are — CtxSlim reads them:
 
 ```json
 {
@@ -74,7 +79,8 @@ Works with:
   },
   "slim": {
     "mode": "auto",
-    "maxTools": 24
+    "maxTools": 24,
+    "connectTimeout": 45000
   }
 }
 ```
@@ -148,11 +154,16 @@ If two servers expose the same tool name, Slim prefixes them (`server__tool`) an
 Yes — `url` entries are proxied via Streamable HTTP alongside stdio servers.
 
 **Where are the tests?**
-43 of them, covering the compressor, the ranking engine, config discovery and a full integration suite that speaks real MCP over real transports. `npm test`.
+55 of them, covering the compressor, the ranking engine, config discovery, the `init` flow, and a full integration suite that speaks real MCP over real transports. `npm test`.
+
+**Is it on npm?**
+Yes — [npmjs.com/package/ctxslim](https://www.npmjs.com/package/ctxslim). `npx -y ctxslim` runs it with zero install.
 
 ## 🤝 Contributing
 
 Contributions are genuinely welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the how and the why. The codebase is small, strict and comment-free on purpose; it's a nice one to read.
+
+**Say hi:** [open an issue](https://github.com/v01dst/ctxslim/issues/new) with your use case, or catch the benchmark breakdown in [docs/design.md](docs/design.md).
 
 ## ⭐ Star history
 
