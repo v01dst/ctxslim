@@ -51,7 +51,9 @@ describe("audit file io", () => {
   });
 
   it("never throws on unwritable dir", () => {
-    process.env.CTX_SLIM_STATS_DIR = "/proc/ctxslim-nope";
+    const file = join(mkdtempSync(join(tmpdir(), "ctxslim-auditio-")), "blocker");
+    writeFileSync(file, "x");
+    process.env.CTX_SLIM_STATS_DIR = file;
     expect(() => appendAuditLine(makeRecord())).not.toThrow();
     expect(loadAuditRecords()).toEqual({ records: [], corrupt: 0 });
   });
