@@ -50,3 +50,15 @@ export const isStdioEntry = (entry: ServerEntry): entry is StdioServerEntry =>
 
 export const DEFAULT_MAX_TOOLS = 24;
 export const DEFAULT_DESCRIPTION_BUDGET = 280;
+
+export type AuditRecord = {
+  ts: number;
+  session: string;
+  server: string;
+  tool: string;
+  argsHash: string;
+  reqChars: number;
+  outChars: number;
+  isError: boolean;
+  durationMs: number;
+};

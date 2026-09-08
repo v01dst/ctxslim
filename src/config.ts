@@ -3,7 +3,7 @@ import { homedir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { compressTool, toolTokenCount } from "./compressor.js";
 import type { UsageRecord } from "./ranker.js";
-import type { ContextSlimConfig, ServerEntry, SlimConfig, SlimMode, ToolDefinition } from "./types.js";
+import type { AuditRecord, ContextSlimConfig, ServerEntry, SlimConfig, SlimMode, ToolDefinition } from "./types.js";
 import { DEFAULT_DESCRIPTION_BUDGET } from "./types.js";
 
 const IS_SLIM = /^(node\/)?(ctxslim|@[\w.-]+\/ctxslim)$/;
@@ -247,5 +247,58 @@ export const saveUsageMap = (map: Record<string, UsageRecord>): void => {
     writeFileSync(usageFilePath(), JSON.stringify(map));
   } catch {
     return;
+  }
+};
+
+export const auditFilePath = (): string => join(statsDir(), "audit.jsonl");
+
+export const appendAuditLine = (record: AuditRecord): void => {
+  try {
+    const dir = statsDir();
+    mkdirSync(dir, { recursive: true });
+    appendFileSync(join(dir, "audit.jsonl"), JSON.stringify(record) + "\n");
+  } catch {
+    return;
+  }
+};
+
+const isAuditRecord = (value: unknown): value is AuditRecord => {
+  if (!value || typeof value !== "object") return false;
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record.ts === "number" &&
+    Number.isFinite(record.ts) &&
+    typeof record.session === "string" &&
+    typeof record.server === "string" &&
+    typeof record.tool === "string" &&
+    typeof record.argsHash === "string" &&
+    typeof record.reqChars === "number" &&
+    Number.isFinite(record.reqChars) &&
+    typeof record.outChars === "number" &&
+    Number.isFinite(record.outChars) &&
+    typeof record.isError === "boolean" &&
+    typeof record.durationMs === "number" &&
+    Number.isFinite(record.durationMs)
+  );
+};
+
+export const loadAuditRecords = (): { records: AuditRecord[]; corrupt: number } => {
+  try {
+    const file = auditFilePath();
+    if (!existsSync(file)) return { records: [], corrupt: 0 };
+    const records: AuditRecord[] = [];
+    let corrupt = 0;
+    for (const line of readFileSync(file, "utf8").split("\n").filter(Boolean)) {
+      try {
+        const parsed: unknown = JSON.parse(line);
+        if (isAuditRecord(parsed)) records.push(parsed);
+        else corrupt += 1;
+      } catch {
+        corrupt += 1;
+      }
+    }
+    return { records, corrupt };
+  } catch {
+    return { records: [], corrupt: 0 };
   }
 };
