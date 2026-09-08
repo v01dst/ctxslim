@@ -1,6 +1,6 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -314,6 +314,49 @@ describe("proxy integration", () => {
         .map((tool) => tool.name);
       expect(nonMeta).toHaveLength(12);
       expect(nonMeta.slice(0, 10).sort()).toEqual([...bigHits, ...alphaHits].sort());
+    } finally {
+      delete process.env.CTX_SLIM_STATS_DIR;
+    }
+  });
+
+  it("meters upstream calls to audit.jsonl", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxslim-meter-"));
+    cleanup.push(dir);
+    process.env.CTX_SLIM_STATS_DIR = dir;
+    try {
+      const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+      cleanup.push(configFile);
+      const { slimServer, client } = await startProxy(configFile, {}, true);
+      activeServers.push(slimServer);
+      await client.callTool({ name: "alpha_tool_0", arguments: { id: "x" } });
+      await client.callTool({ name: "alpha_tool_0", arguments: { id: "x" } });
+      await client.callTool({ name: "alpha_tool_1", arguments: { id: "x", fail: true } });
+      const { loadAuditRecords } = await import("../src/config.js");
+      const { hashArgs } = await import("../src/audit.js");
+      const { records } = loadAuditRecords();
+      expect(records).toHaveLength(3);
+      expect(records[0]).toMatchObject({ server: "alpha", tool: "alpha_tool_0", isError: false });
+      expect(records[0].argsHash).toBe(hashArgs({ id: "x" }));
+      expect(records[0].outChars).toBeGreaterThan(0);
+      expect(records[0].reqChars).toBe(JSON.stringify({ id: "x" }).length);
+      expect(records[2]).toMatchObject({ tool: "alpha_tool_1", isError: true });
+      const raw = readFileSync(join(dir, "audit.jsonl"), "utf8");
+      expect(raw).not.toContain('"id":"x"');
+    } finally {
+      delete process.env.CTX_SLIM_STATS_DIR;
+    }
+  });
+
+  it("writes no audit lines when stats are disabled", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ctxslim-meter-"));
+    cleanup.push(dir);
+    process.env.CTX_SLIM_STATS_DIR = dir;
+    try {
+      const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+      cleanup.push(configFile);
+      const { client } = await startProxy(configFile, {}, false);
+      await client.callTool({ name: "alpha_tool_0", arguments: { id: "x" } });
+      expect(existsSync(join(dir, "audit.jsonl"))).toBe(false);
     } finally {
       delete process.env.CTX_SLIM_STATS_DIR;
     }

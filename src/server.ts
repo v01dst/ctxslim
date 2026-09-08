@@ -16,12 +16,13 @@ import type { ServerResult } from "@modelcontextprotocol/sdk/types.js";
 import { compressTool } from "./compressor.js";
 import { matchesAny } from "./glob.js";
 import { compressToolResult } from "./output.js";
+import { hashArgs } from "./audit.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
 import type { ContextSlimConfig, ServerEntry, SlimMode, ToolDefinition } from "./types.js";
 import { META_TOOLS, formatSearchResults, formatServerList } from "./meta.js";
 import { ToolIndex, adaptiveScore } from "./ranker.js";
 import type { UsageRecord } from "./ranker.js";
-import { loadUsageMap, saveSessionStats, saveUsageMap } from "./config.js";
+import { appendAuditLine, loadUsageMap, saveSessionStats, saveUsageMap } from "./config.js";
 import type { SessionStats } from "./config.js";
 import { Upstream } from "./upstream.js";
 import type { PromptDefinition, ResourceDefinition } from "./upstream.js";
@@ -300,6 +301,25 @@ export class ContextSlimServer {
     }
   }
 
+  private recordAudit(entry: { server: string; tool: string; args: unknown; reqChars: number; outChars: number; isError: boolean; durationMs: number }): void {
+    if (!this.statsEnabled) return;
+    try {
+      appendAuditLine({
+        ts: Date.now(),
+        session: this.startedAt.toISOString(),
+        server: entry.server,
+        tool: entry.tool,
+        argsHash: hashArgs(entry.args),
+        reqChars: entry.reqChars,
+        outChars: entry.outChars,
+        isError: entry.isError,
+        durationMs: entry.durationMs,
+      });
+    } catch {
+      return;
+    }
+  }
+
   private exposedTools(): ToolDefinition[] {
     const now = Date.now();
     const readyTools: ResolvedTool[] = [];
@@ -377,9 +397,20 @@ export class ContextSlimServer {
       };
     }
     try {
+      const callStart = Date.now();
+      const reqChars = JSON.stringify(args ?? {}).length;
       const result = await upstream.callTool(resolvedTool.originalName, args);
       const maxChars = this.config.mcpServers[resolvedTool.server]?.output?.maxChars;
       const finalResult = maxChars ? compressToolResult(result, maxChars).result : result;
+      this.recordAudit({
+        server: resolvedTool.server,
+        tool: resolvedTool.originalName,
+        args,
+        reqChars,
+        outChars: JSON.stringify(finalResult ?? {}).length,
+        isError: false,
+        durationMs: Date.now() - callStart,
+      });
       this.usage.set(key, {
         count: (this.usage.get(key)?.count ?? 0) + 1,
         lastUsed: Date.now(),
@@ -390,7 +421,17 @@ export class ContextSlimServer {
       return finalResult;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      return { content: [{ type: "text", text: `Tool "${exposedName}" failed: ${message}` }], isError: true };
+      const errorResult = { content: [{ type: "text", text: `Tool "${exposedName}" failed: ${message}` }], isError: true };
+      this.recordAudit({
+        server: resolvedTool.server,
+        tool: resolvedTool.originalName,
+        args,
+        reqChars: JSON.stringify(args ?? {}).length,
+        outChars: JSON.stringify(errorResult).length,
+        isError: true,
+        durationMs: 0,
+      });
+      return errorResult;
     }
   }
 

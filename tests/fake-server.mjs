@@ -85,6 +85,10 @@ const handle = (message) => {
       break;
     case "tools/call": {
       const name = message.params?.name ?? "unknown";
+      if (message.params?.arguments?.fail === true) {
+        replyError(message.id, -32000, "fake failure");
+        break;
+      }
       const text = name.endsWith("__big")
         ? `TRUNCATION-SENTINEL${"payload ".repeat(4000)}END-SENTINEL`
         : `${serverName} handled ${name}`;
