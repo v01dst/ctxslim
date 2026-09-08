@@ -1,5 +1,8 @@
 #!/usr/bin/env node
-import { loadConfig, loadStatsSummary, loadUsageMap, describeConfig } from "./config.js";
+import { readFileSync } from "node:fs";
+import { loadAuditRecords, loadConfig, loadStatsSummary, loadUsageMap, describeConfig } from "./config.js";
+import { summarizeAudit } from "./audit.js";
+import { PRICE_AS_OF, PRICE_TABLE, dollarsFor, familyNames, parsePricesFile } from "./pricing.js";
 import { ContextSlimServer } from "./server.js";
 import { BANNER, bold, cyan, dim, fmtTokens, green, red, yellow } from "./ui.js";
 import { applyInit, existingTargets, planInit, resolveTarget } from "./init.js";
@@ -20,6 +23,8 @@ const usage = (): string =>
     `    ctxslim --quiet             No banner, minimal logging`,
     `    ctxslim --no-stats          Don't write session stats to ~/.ctxslim`,
     `    ctxslim stats [--json]          Show saved token savings (JSON with --json)`,
+    `    ctxslim audit [--gap <s>] [--model <fam>] [--prices <file>] [--json]`,
+    `                                Show per-task dollar spend (prices are estimates)`,
     `    ctxslim doctor              Check config and server connectivity`,
     `    ctxslim --help              This message`,
     "",
@@ -35,6 +40,9 @@ type Args = {
   client?: string;
   yes?: boolean;
   json?: boolean;
+  gap?: number;
+  model?: string;
+  prices?: string;
 };
 
 const parseArgs = (argv: string[]): Args => {
@@ -71,7 +79,19 @@ const parseArgs = (argv: string[]): Args => {
       process.exit(0);
     } else if (arg === "--json") {
       args.json = true;
-    } else if (arg === "stats" || arg === "doctor" || arg === "init") {
+    } else if (arg === "--gap") {
+      const value = Number(argv[++i]);
+      if (!Number.isFinite(value) || value <= 0) fail("--gap must be a positive number of seconds");
+      args.gap = value;
+    } else if (arg === "--model") {
+      const value = argv[++i];
+      if (!value) fail("--model requires a family name");
+      args.model = value;
+    } else if (arg === "--prices") {
+      const value = argv[++i];
+      if (!value) fail("--prices requires a path");
+      args.prices = value;
+    } else if (arg === "stats" || arg === "doctor" || arg === "init" || arg === "audit") {
       args.command = arg;
     } else {
       fail(`Unknown argument: ${arg}`);
@@ -182,6 +202,149 @@ const printStats = (json: boolean): void => {
   process.stdout.write(lines.join("\n"));
 };
 
+const fmtUsd = (value: number): string => (value < 0.01 ? `$${value.toFixed(4)}` : `$${value.toFixed(2)}`);
+
+const tokensForChars = (chars: number): number => Math.ceil(chars / 4);
+
+const printAudit = (opts: { gap: number; model?: string; prices?: string; json: boolean }): void => {
+  const { records, corrupt } = loadAuditRecords();
+  let table = PRICE_TABLE;
+  let asOf = PRICE_AS_OF;
+  if (opts.prices) {
+    try {
+      const raw: unknown = JSON.parse(readFileSync(opts.prices, "utf8"));
+      table = parsePricesFile(raw);
+      asOf = "custom file";
+    } catch (err) {
+      process.stderr.write(`${red("prices:")} ${err instanceof Error ? err.message : String(err)}\n`);
+      process.exit(1);
+    }
+  }
+  if (opts.model && !table.some((row) => row.family === opts.model)) {
+    process.stderr.write(`${red("model:")} unknown family "${opts.model}" (known: ${familyNames(table).join(", ")})\n`);
+    process.exit(1);
+  }
+  const headFamily = opts.model ?? "sonnet";
+  if (!table.some((row) => row.family === headFamily)) {
+    process.stderr.write(`${red("model:")} default family "sonnet" not in price table; pass --model explicitly\n`);
+    process.exit(1);
+  }
+  if (records.length === 0) {
+    if (opts.json) {
+      process.stdout.write(`${JSON.stringify({ summary: null, tasks: [], tools: [], waste: { duplicates: [], errors: [] } }, null, 2)}\n`);
+      return;
+    }
+    process.stdout.write(`  ${dim("No audit data yet.")}\n  ${dim("Run ctxslim with your MCP client, then re-run ctxslim audit.")}\n`);
+    return;
+  }
+  const summary = summarizeAudit(records, opts.gap);
+  const { lines } = loadStatsSummary();
+  const defsTokens = lines.length > 0 ? Math.round(lines.reduce((sum, line) => sum + line.tokensAfter, 0) / lines.length) : 0;
+  const spendByFamily: Record<string, number> = {};
+  for (const row of table) spendByFamily[row.family] = dollarsFor(tokensForChars(summary.totalOutChars), row.inputPer1M);
+  const defsByFamily: Record<string, { full: number; cached: number }> = {};
+  for (const row of table) {
+    defsByFamily[row.family] = {
+      full: dollarsFor(defsTokens, row.inputPer1M),
+      cached: dollarsFor(defsTokens, row.cacheReadPer1M ?? row.inputPer1M),
+    };
+  }
+  const wasteSpend = (chars: number): Record<string, number> => {
+    const out: Record<string, number> = {};
+    for (const row of table) out[row.family] = dollarsFor(tokensForChars(chars), row.inputPer1M);
+    return out;
+  };
+  if (opts.json) {
+    const tasks = summary.tasks.map((task) => ({
+      id: task.id,
+      session: task.session,
+      calls: task.calls,
+      outTokens: tokensForChars(task.outChars),
+      errors: task.errors,
+      spend: Object.fromEntries(table.map((row) => [row.family, dollarsFor(tokensForChars(task.outChars), row.inputPer1M)])),
+    }));
+    const tools = summary.tools.map((row) => ({
+      key: row.key,
+      calls: row.calls,
+      outTokens: tokensForChars(row.outChars),
+      errors: row.errors,
+      dupCalls: row.dupCalls,
+      spend: Object.fromEntries(table.map((family) => [family.family, dollarsFor(tokensForChars(row.outChars), family.inputPer1M)])),
+    }));
+    const duplicates: { key: string; count: number; wasteTokens: number; spend: Record<string, number> }[] = [];
+    const errors: { key: string; count: number; wasteTokens: number; spend: Record<string, number> }[] = [];
+    for (const task of summary.tasks) {
+      for (const dup of task.dups) duplicates.push({ key: dup.key, count: dup.count, wasteTokens: tokensForChars(dup.wasteChars), spend: wasteSpend(dup.wasteChars) });
+    }
+    const byError = new Map<string, { count: number; outChars: number }>();
+    for (const record of records) {
+      if (!record.isError) continue;
+      const key = `${record.server}::${record.tool}`;
+      const entry = byError.get(key) ?? { count: 0, outChars: 0 };
+      entry.count += 1;
+      entry.outChars += record.outChars;
+      byError.set(key, entry);
+    }
+    for (const [key, entry] of byError) errors.push({ key, count: entry.count, wasteTokens: tokensForChars(entry.outChars), spend: wasteSpend(entry.outChars) });
+    process.stdout.write(
+      `${JSON.stringify(
+        {
+          summary: {
+            tasks: summary.tasks.length,
+            calls: summary.totalCalls,
+            toolOutTokens: tokensForChars(summary.totalOutChars),
+            spendByFamily,
+            defsPerRequestTokens: defsTokens,
+            defsPerRequestByFamily: defsByFamily,
+            dupWasteByFamily: wasteSpend(summary.dupWasteChars),
+            errorWasteByFamily: wasteSpend(summary.errorWasteChars),
+            corrupt,
+            pricesAsOf: asOf,
+            pricesEstimated: true,
+          },
+          tasks,
+          tools,
+          waste: { duplicates, errors },
+        },
+        null,
+        2
+      )}\n`
+    );
+    return;
+  }
+  const out: string[] = [
+    "",
+    `  ${bold("CtxSlim")} ${dim("— spend audit")}  ${dim(`(prices indicative as of ${asOf})`)}`,
+    "",
+    `  tasks               ${summary.tasks.length}`,
+    `  tool calls          ${summary.totalCalls}`,
+    `  tool-output spend   ${table.map((row) => `${row.family} ${fmtUsd(spendByFamily[row.family] ?? 0)}`).join("  ")}`,
+    `  definitions/request ~${fmtTokens(defsTokens)} tokens  ${table.map((row) => `${row.family} ${fmtUsd(defsByFamily[row.family]?.full ?? 0)}/${fmtUsd(defsByFamily[row.family]?.cached ?? 0)}`).join("  ")} ${dim("(full/cached)")}`,
+    `  duplicate waste     ${fmtUsd(wasteSpend(summary.dupWasteChars)[headFamily] ?? 0)} ${dim(`(${headFamily})`)}`,
+    `  error waste         ${fmtUsd(wasteSpend(summary.errorWasteChars)[headFamily] ?? 0)} ${dim(`(${headFamily})`)}`,
+    "",
+    `  ${bold(`Top tasks (${headFamily})`)}`,
+  ];
+  for (const task of summary.tasks.slice(0, 10)) {
+    const dominant = Object.entries(task.byServer).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
+    out.push(`    ${task.id.padEnd(8)} ${String(task.calls).padStart(4)} calls  ${fmtUsd(dollarsFor(tokensForChars(task.outChars), table.find((row) => row.family === headFamily)?.inputPer1M ?? 0))}  ${dim(dominant)}`);
+  }
+  out.push("", `  ${bold(`Top tools (${headFamily})`)}`);
+  for (const row of summary.tools.slice(0, 10)) {
+    const rate = table.find((entry) => entry.family === headFamily)?.inputPer1M ?? 0;
+    out.push(`    ${String(row.calls).padStart(4)}×  ${fmtUsd(dollarsFor(tokensForChars(row.outChars), rate))}  ${row.key}${row.errors > 0 ? `  ${red(`${row.errors} err`)}` : ""}`);
+  }
+  const dupGroups = summary.tasks.flatMap((task) => task.dups).sort((a, b) => b.wasteChars - a.wasteChars).slice(0, 10);
+  if (dupGroups.length > 0) {
+    out.push("", `  ${bold("Duplicate calls (paid N× for identical args)")}`);
+    for (const dup of dupGroups) {
+      out.push(`    ${String(dup.count).padStart(4)}×  ${fmtUsd(dollarsFor(tokensForChars(dup.wasteChars), table.find((entry) => entry.family === headFamily)?.inputPer1M ?? 0))} waste  ${dup.server}::${dup.tool}`);
+    }
+  }
+  out.push("", `  ${dim("Model tokens excluded — MCP-attributable spend only. Tune with --gap, --model, --prices.")}`, "");
+  process.stdout.write(out.join("\n"));
+};
+
 const loadConfigSafe = (configPath?: string): ReturnType<typeof loadConfig> => {
   try {
     return loadConfig(configPath);
@@ -204,6 +367,10 @@ const main = async (): Promise<void> => {
   const args = parseArgs(process.argv.slice(2));
   if (args.command === "stats") {
     printStats(args.json === true);
+    return;
+  }
+  if (args.command === "audit") {
+    printAudit({ gap: args.gap ?? 120, model: args.model, prices: args.prices, json: args.json === true });
     return;
   }
   if (args.command === "init") {
