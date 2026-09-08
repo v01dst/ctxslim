@@ -223,9 +223,9 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
     process.stderr.write(`${red("model:")} unknown family "${opts.model}" (known: ${familyNames(table).join(", ")})\n`);
     process.exit(1);
   }
-  const headFamily = opts.model ?? "sonnet";
+  const headFamily = opts.model ?? "claude-sonnet-5";
   if (!table.some((row) => row.family === headFamily)) {
-    process.stderr.write(`${red("model:")} default family "sonnet" not in price table; pass --model explicitly\n`);
+    process.stderr.write(`${red("model:")} default family "claude-sonnet-5" not in price table; pass --model explicitly\n`);
     process.exit(1);
   }
   if (records.length === 0) {

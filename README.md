@@ -167,27 +167,27 @@ Example sketch:
 ```
 tasks               12
 tool calls          148
-tool-output spend   sonnet $0.0234  opus $0.0581  gemini-flash $0.0042
-definitions/request ~9.2k tokens  sonnet $0.0276/$0.0028 (full/cached)
-duplicate waste     $0.0031 (sonnet)
-error waste         $0.0008 (sonnet)
+tool-output spend   claude-sonnet-5 $0.0156  claude-opus-5 $0.0390  gemini-3.8-flash $0.0059
+definitions/request ~9.2k tokens  claude-sonnet-5 $0.0184/$0.0018 (full/cached)
+duplicate waste     $0.0021 (claude-sonnet-5)
+error waste         $0.0005 (claude-sonnet-5)
 
-Top tasks (sonnet)
-  task-03      21 calls  $0.0062  github
-Top tools (sonnet)
-    34×  $0.0081  github::search_code
+Top tasks (claude-sonnet-5)
+  task-03      21 calls  $0.0041  github
+Top tools (claude-sonnet-5)
+    34×  $0.0054  github::search_code
 Duplicate calls (paid N× for identical args)
-     5×  $0.0020 waste  github::search_code
+     5×  $0.0013 waste  github::search_code
 ```
 
 Flags:
 
 - `--gap <s>`: idle seconds that split one task from the next (default: 120).
-- `--model <fam>`: headline family for the waste and top-list figures (default: sonnet).
+- `--model <fam>`: headline family for the waste and top-list figures (default: claude-sonnet-5).
 - `--prices <file>`: custom price-table JSON overriding the built-in table.
 - `--json`: full machine-readable `{ summary, tasks, tools, waste }` for scripting.
 
-Two pricing rules: tool outputs are priced as **input** tokens (chars/4 estimator), and definitions are shown per request as **full/cached** so you see both the uncompressed and prompt-cached cost. Prices are indicative as of 2026-09-08 — override with `--prices` when they drift.
+Two pricing rules: tool outputs are priced as **input** tokens (chars/4 estimator), and definitions are shown per request as **full/cached** so you see both the uncompressed and prompt-cached cost. Prices are indicative as of 2026-09-08 — override with `--prices` when they drift. Built-in families: `claude-fable-5-1`, `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`, `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gemini-3.1-pro` (≤200K context tier), `gemini-3.8-flash` (intro price, doubles Jan 2027).
 
 ## 🔒 Privacy
 

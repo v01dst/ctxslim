@@ -42,7 +42,7 @@ describe("ctxslim audit CLI", () => {
     expect(out).toContain("tasks");
     expect(out).toContain("alpha::t0");
     expect(out).toContain("Duplicate");
-    expect(out).toContain("sonnet");
+    expect(out).toContain("claude-sonnet-5");
     expect(out).toContain("indicative");
   });
 
@@ -53,7 +53,7 @@ describe("ctxslim audit CLI", () => {
     expect(parsed.tools).toHaveLength(2);
     expect(parsed.waste.duplicates).toHaveLength(1);
     expect(parsed.waste.duplicates[0].count).toBe(2);
-    expect(parsed.summary.spendByFamily.sonnet).toBeGreaterThan(0);
+    expect(parsed.summary.spendByFamily["claude-sonnet-5"]).toBeGreaterThan(0);
     expect(parsed.summary.defsPerRequestTokens).toBe(4000);
     expect(typeof parsed.summary.pricesAsOf).toBe("string");
   });

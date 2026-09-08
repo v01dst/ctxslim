@@ -9,7 +9,7 @@ describe("pricing", () => {
       expect(row.inputPer1M).toBeGreaterThan(0);
       expect(row.outputPer1M).toBeGreaterThan(0);
     }
-    expect(familyNames(PRICE_TABLE)).toContain("sonnet");
+    expect(familyNames(PRICE_TABLE)).toContain("claude-sonnet-5");
   });
 
   it("prices tokens", () => {

@@ -5,34 +5,54 @@
     "tokensPerRequestAfter": 6869,
     "savingsPct": 17.8,
     "usdPerRequestBefore": {
-      "sonnet": 0.025068,
-      "opus": 0.12534,
-      "gpt": 0.02089,
-      "gemini": 0.010445,
-      "gemini-flash": 0.002507
+      "claude-fable-5-1": 0.08356,
+      "claude-opus-5": 0.04178,
+      "claude-sonnet-5": 0.016712,
+      "claude-haiku-4-5": 0.008356,
+      "gpt-6-astra": 0.08356,
+      "gpt-5.6-sol": 0.033424,
+      "gpt-5.6-terra": 0.016712,
+      "gpt-5.6-luna": 0.001671,
+      "gemini-3.1-pro": 0.016712,
+      "gemini-3.8-flash": 0.006267
     },
     "usdPerRequestAfter": {
-      "sonnet": 0.020607,
-      "opus": 0.103035,
-      "gpt": 0.017173,
-      "gemini": 0.008586,
-      "gemini-flash": 0.002061
+      "claude-fable-5-1": 0.06869,
+      "claude-opus-5": 0.034345,
+      "claude-sonnet-5": 0.013738,
+      "claude-haiku-4-5": 0.006869,
+      "gpt-6-astra": 0.06869,
+      "gpt-5.6-sol": 0.027476,
+      "gpt-5.6-terra": 0.013738,
+      "gpt-5.6-luna": 0.001374,
+      "gemini-3.1-pro": 0.013738,
+      "gemini-3.8-flash": 0.005152
     },
     "bigCallTokensRaw": 8018,
     "bigCallTokensCapped": 1011,
     "usdPerBigCallRaw": {
-      "sonnet": 0.024054,
-      "opus": 0.12027,
-      "gpt": 0.020045,
-      "gemini": 0.010023,
-      "gemini-flash": 0.002405
+      "claude-fable-5-1": 0.08018,
+      "claude-opus-5": 0.04009,
+      "claude-sonnet-5": 0.016036,
+      "claude-haiku-4-5": 0.008018,
+      "gpt-6-astra": 0.08018,
+      "gpt-5.6-sol": 0.032072,
+      "gpt-5.6-terra": 0.016036,
+      "gpt-5.6-luna": 0.001604,
+      "gemini-3.1-pro": 0.016036,
+      "gemini-3.8-flash": 0.006013
     },
     "usdPerBigCallCapped": {
-      "sonnet": 0.003033,
-      "opus": 0.015165,
-      "gpt": 0.002527,
-      "gemini": 0.001264,
-      "gemini-flash": 0.000303
+      "claude-fable-5-1": 0.01011,
+      "claude-opus-5": 0.005055,
+      "claude-sonnet-5": 0.002022,
+      "claude-haiku-4-5": 0.001011,
+      "gpt-6-astra": 0.01011,
+      "gpt-5.6-sol": 0.004044,
+      "gpt-5.6-terra": 0.002022,
+      "gpt-5.6-luna": 0.000202,
+      "gemini-3.1-pro": 0.002022,
+      "gemini-3.8-flash": 0.000758
     }
   },
   {
@@ -41,34 +61,54 @@
     "tokensPerRequestAfter": 9157,
     "savingsPct": 55.2,
     "usdPerRequestBefore": {
-      "sonnet": 0.061263,
-      "opus": 0.306315,
-      "gpt": 0.051053,
-      "gemini": 0.025526,
-      "gemini-flash": 0.006126
+      "claude-fable-5-1": 0.20421,
+      "claude-opus-5": 0.102105,
+      "claude-sonnet-5": 0.040842,
+      "claude-haiku-4-5": 0.020421,
+      "gpt-6-astra": 0.20421,
+      "gpt-5.6-sol": 0.081684,
+      "gpt-5.6-terra": 0.040842,
+      "gpt-5.6-luna": 0.004084,
+      "gemini-3.1-pro": 0.040842,
+      "gemini-3.8-flash": 0.015316
     },
     "usdPerRequestAfter": {
-      "sonnet": 0.027471,
-      "opus": 0.137355,
-      "gpt": 0.022892,
-      "gemini": 0.011446,
-      "gemini-flash": 0.002747
+      "claude-fable-5-1": 0.09157,
+      "claude-opus-5": 0.045785,
+      "claude-sonnet-5": 0.018314,
+      "claude-haiku-4-5": 0.009157,
+      "gpt-6-astra": 0.09157,
+      "gpt-5.6-sol": 0.036628,
+      "gpt-5.6-terra": 0.018314,
+      "gpt-5.6-luna": 0.001831,
+      "gemini-3.1-pro": 0.018314,
+      "gemini-3.8-flash": 0.006868
     },
     "bigCallTokensRaw": 8018,
     "bigCallTokensCapped": 1011,
     "usdPerBigCallRaw": {
-      "sonnet": 0.024054,
-      "opus": 0.12027,
-      "gpt": 0.020045,
-      "gemini": 0.010023,
-      "gemini-flash": 0.002405
+      "claude-fable-5-1": 0.08018,
+      "claude-opus-5": 0.04009,
+      "claude-sonnet-5": 0.016036,
+      "claude-haiku-4-5": 0.008018,
+      "gpt-6-astra": 0.08018,
+      "gpt-5.6-sol": 0.032072,
+      "gpt-5.6-terra": 0.016036,
+      "gpt-5.6-luna": 0.001604,
+      "gemini-3.1-pro": 0.016036,
+      "gemini-3.8-flash": 0.006013
     },
     "usdPerBigCallCapped": {
-      "sonnet": 0.003033,
-      "opus": 0.015165,
-      "gpt": 0.002527,
-      "gemini": 0.001264,
-      "gemini-flash": 0.000303
+      "claude-fable-5-1": 0.01011,
+      "claude-opus-5": 0.005055,
+      "claude-sonnet-5": 0.002022,
+      "claude-haiku-4-5": 0.001011,
+      "gpt-6-astra": 0.01011,
+      "gpt-5.6-sol": 0.004044,
+      "gpt-5.6-terra": 0.002022,
+      "gpt-5.6-luna": 0.000202,
+      "gemini-3.1-pro": 0.002022,
+      "gemini-3.8-flash": 0.000758
     }
   },
   {
@@ -77,34 +117,54 @@
     "tokensPerRequestAfter": 9156,
     "savingsPct": 74.7,
     "usdPerRequestBefore": {
-      "sonnet": 0.108534,
-      "opus": 0.54267,
-      "gpt": 0.090445,
-      "gemini": 0.045222,
-      "gemini-flash": 0.010853
+      "claude-fable-5-1": 0.36178,
+      "claude-opus-5": 0.18089,
+      "claude-sonnet-5": 0.072356,
+      "claude-haiku-4-5": 0.036178,
+      "gpt-6-astra": 0.36178,
+      "gpt-5.6-sol": 0.144712,
+      "gpt-5.6-terra": 0.072356,
+      "gpt-5.6-luna": 0.007236,
+      "gemini-3.1-pro": 0.072356,
+      "gemini-3.8-flash": 0.027134
     },
     "usdPerRequestAfter": {
-      "sonnet": 0.027468,
-      "opus": 0.13734,
-      "gpt": 0.02289,
-      "gemini": 0.011445,
-      "gemini-flash": 0.002747
+      "claude-fable-5-1": 0.09156,
+      "claude-opus-5": 0.04578,
+      "claude-sonnet-5": 0.018312,
+      "claude-haiku-4-5": 0.009156,
+      "gpt-6-astra": 0.09156,
+      "gpt-5.6-sol": 0.036624,
+      "gpt-5.6-terra": 0.018312,
+      "gpt-5.6-luna": 0.001831,
+      "gemini-3.1-pro": 0.018312,
+      "gemini-3.8-flash": 0.006867
     },
     "bigCallTokensRaw": 8018,
     "bigCallTokensCapped": 1011,
     "usdPerBigCallRaw": {
-      "sonnet": 0.024054,
-      "opus": 0.12027,
-      "gpt": 0.020045,
-      "gemini": 0.010023,
-      "gemini-flash": 0.002405
+      "claude-fable-5-1": 0.08018,
+      "claude-opus-5": 0.04009,
+      "claude-sonnet-5": 0.016036,
+      "claude-haiku-4-5": 0.008018,
+      "gpt-6-astra": 0.08018,
+      "gpt-5.6-sol": 0.032072,
+      "gpt-5.6-terra": 0.016036,
+      "gpt-5.6-luna": 0.001604,
+      "gemini-3.1-pro": 0.016036,
+      "gemini-3.8-flash": 0.006013
     },
     "usdPerBigCallCapped": {
-      "sonnet": 0.003033,
-      "opus": 0.015165,
-      "gpt": 0.002527,
-      "gemini": 0.001264,
-      "gemini-flash": 0.000303
+      "claude-fable-5-1": 0.01011,
+      "claude-opus-5": 0.005055,
+      "claude-sonnet-5": 0.002022,
+      "claude-haiku-4-5": 0.001011,
+      "gpt-6-astra": 0.01011,
+      "gpt-5.6-sol": 0.004044,
+      "gpt-5.6-terra": 0.002022,
+      "gpt-5.6-luna": 0.000202,
+      "gemini-3.1-pro": 0.002022,
+      "gemini-3.8-flash": 0.000758
     }
   }
 ]
