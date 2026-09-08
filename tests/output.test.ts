@@ -42,4 +42,24 @@ describe("compressToolResult", () => {
     expect(truncated).toBe(false);
     expect(compressed).toEqual(result);
   });
+
+  it("leaves structuredContent untouched while truncating content text", () => {
+    const longText = "y".repeat(9000);
+    const longStructured = "z".repeat(9000);
+    const result = {
+      content: [{ type: "text", text: longText }],
+      structuredContent: { data: longStructured },
+      _meta: { extra: longStructured },
+    };
+    const { result: compressed, truncated } = compressToolResult(result, 500);
+    expect(truncated).toBe(true);
+    const out = compressed as {
+      content: { type: string; text: string }[];
+      structuredContent: { data: string };
+      _meta: { extra: string };
+    };
+    expect(out.content[0].text).toContain("[ctxslim: truncated");
+    expect(out.structuredContent.data).toBe(longStructured);
+    expect(out._meta.extra).toBe(longStructured);
+  });
 });

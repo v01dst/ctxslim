@@ -103,7 +103,7 @@ Per-server filtering, output limits, and adaptive ranking:
 ```
 
 - `include` / `exclude`: glob lists applied per server at indexing time (`*` matches any run including separators, `?` matches one char). `exclude` wins over `include`.
-- `output.maxChars`: truncate text tool results from that server to N chars (with a truncation marker). Structured content passes through untouched.
+- `output.maxChars`: truncate text tool results from that server to N chars (with a truncation marker). Structured content passes through untouched. `"output": {}` without `maxChars` is rejected with an invalid `output.maxChars` error.
 - `slim.adaptive`: when `true` (default), tools you actually call get a usage boost in ranking, persisted to `~/.ctxslim/usage.json`. Set `false` to disable.
 
 ## 🧠 How it works
@@ -158,7 +158,7 @@ Session stats live in `~/.ctxslim/stats.jsonl`. Run `ctxslim stats` after a week
 
 ## 🔒 Privacy
 
-CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. The optional stats file stays on your disk and never leaves it.
+CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`) and tool usage (`~/.ctxslim/usage.json`) stay on your disk, are local-only, and are both disabled by `--no-stats`.
 
 ## ❓ FAQ
 
@@ -184,7 +184,7 @@ Yes — [npmjs.com/package/ctxslim](https://www.npmjs.com/package/ctxslim). `npx
 
 Contributions are genuinely welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the how and the why. The codebase is small, strict and comment-free on purpose; it's a nice one to read.
 
-**Say hi:** [open an issue](https://github.com/v01dst/ctxslim/issues/new) with your use case, or catch the benchmark breakdown in [docs/design.md](docs/design.md).
+**Say hi:** [open an issue](https://github.com/v01dst/ctxslim/issues/new) with your use case.
 
 ## ⭐ Star history
 

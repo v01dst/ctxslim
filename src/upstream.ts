@@ -68,7 +68,7 @@ export class Upstream {
     this.closedIntentionally = false;
     this.status = "connecting";
     this.error = null;
-    const client = new Client({ name: "ctxslim", version: "0.3.0" });
+    const client = new Client({ name: "ctxslim", version: "0.3.1" });
     client.setNotificationHandler(ToolListChangedNotificationSchema, () => {
       void this.refreshTools().then(this.onToolsChanged).catch(() => undefined);
     });

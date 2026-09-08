@@ -33,6 +33,12 @@ describe("ctxslim stats CLI", () => {
 
   it("renders --json output", () => {
     const dir = mkdtempSync(join(tmpdir(), "ctxslim-clistats-"));
+    const now = Date.now();
+    writeFileSync(join(dir, "usage.json"), JSON.stringify({
+      "alpha::tool_a": { count: 2, lastUsed: now - 3000 },
+      "alpha::tool_b": { count: 9, lastUsed: now - 2000 },
+      "alpha::tool_c": { count: 5, lastUsed: now - 1000 },
+    }));
     const out = execFileSync("npx", ["tsx", cli, "stats", "--json"], {
       env: { ...process.env, CTX_SLIM_STATS_DIR: dir },
       encoding: "utf8",
@@ -41,5 +47,17 @@ describe("ctxslim stats CLI", () => {
     const parsed = JSON.parse(out);
     expect(parsed.summary.sessions).toBe(0);
     expect(Array.isArray(parsed.byTool)).toBe(true);
+    expect(parsed.byTool).toHaveLength(3);
+    expect(parsed.byTool.map((item: { key: string }) => item.key)).toEqual([
+      "alpha::tool_b",
+      "alpha::tool_c",
+      "alpha::tool_a",
+    ]);
+    for (const item of parsed.byTool) {
+      expect(Object.keys(item).sort()).toEqual(["count", "key", "lastUsed"]);
+      expect(typeof item.key).toBe("string");
+      expect(typeof item.count).toBe("number");
+      expect(typeof item.lastUsed).toBe("number");
+    }
   });
 });

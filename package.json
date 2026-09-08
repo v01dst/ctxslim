@@ -1,6 +1,6 @@
 {
   "name": "ctxslim",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Put your MCP servers on a diet. A zero-config, 100% local proxy that cuts MCP context bloat.",
   "type": "module",
   "license": "MIT",

@@ -67,7 +67,7 @@ const parseArgs = (argv: string[]): Args => {
       process.stdout.write(usage() + "\n");
       process.exit(0);
     } else if (arg === "--version" || arg === "-v") {
-      process.stdout.write("0.3.0\n");
+      process.stdout.write("0.3.1\n");
       process.exit(0);
     } else if (arg === "--json") {
       args.json = true;
