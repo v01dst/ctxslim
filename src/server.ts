@@ -61,7 +61,7 @@ export class ContextSlimServer {
     this.statsEnabled = opts.stats ?? config.slim?.stats ?? true;
     this.quiet = opts.quiet ?? false;
     this.server = new Server(
-      { name: "ctxslim", version: "0.2.0" },
+      { name: "ctxslim", version: "0.3.0" },
       {
         capabilities: {
           tools: { listChanged: true },
@@ -527,7 +527,7 @@ export class ContextSlimServer {
   printBanner(source: string): void {
     if (this.quiet) return;
     process.stderr.write(`${cyan(BANNER)}\n`);
-    process.stderr.write(`  ${bold("CtxSlim")} ${dim("v0.2.0")} ${dim("— MCP without the bloat")}\n\n`);
+    process.stderr.write(`  ${bold("CtxSlim")} ${dim("v0.3.0")} ${dim("— MCP without the bloat")}\n\n`);
     process.stderr.write(`  ${dim("config")}   ${source}\n`);
     process.stderr.write(`  ${dim("mode")}     ${this.mode}\n`);
     if (this.tokensBefore > 0 && this.tokensAfter > 0 && this.mode !== "off") {

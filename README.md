@@ -85,6 +85,27 @@ Keep your servers as they are — CtxSlim reads them:
 }
 ```
 
+Per-server filtering, output limits, and adaptive ranking:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp"],
+      "include": ["browser_*"],
+      "exclude": ["*_debug*"],
+      "output": { "maxChars": 4000 }
+    }
+  },
+  "slim": { "adaptive": true, "maxTools": 24 }
+}
+```
+
+- `include` / `exclude`: glob lists applied per server at indexing time (`*` matches any run including separators, `?` matches one char). `exclude` wins over `include`.
+- `output.maxChars`: truncate text tool results from that server to N chars (with a truncation marker). Structured content passes through untouched.
+- `slim.adaptive`: when `true` (default), tools you actually call get a usage boost in ranking, persisted to `~/.ctxslim/usage.json`. Set `false` to disable.
+
 ## 🧠 How it works
 
 ```mermaid
@@ -96,7 +117,7 @@ flowchart LR
     style S fill:#16a34a,stroke:#14532d,color:#fff
 ```
 
-1. On connection, Slim aggregates every upstream server behind **one surface**.
+1. On startup, Slim answers **instantly** (lazy connect): the proxy connects to your client immediately and boots each upstream server in the background — servers appear as they connect (`✓ <name> (N tools)` on stderr) instead of blocking startup on the slowest one.
 2. In `auto` mode it exposes only the top-K most relevant tools, plus a `search_tools` meta-tool your agent uses to pull in anything else on demand — progressive disclosure instead of a 40-tool firehose.
 3. Exposed schemas are **compressed**: boilerplate keywords stripped, descriptions trimmed to a budget, unused `$defs` dropped — measured with a chars/4 token estimator and reported back to you.
 4. Tool calls are routed transparently to the right upstream server. Your agent can't tell the difference — except its context is lighter.
@@ -129,11 +150,11 @@ ctxslim --mode <mode>         auto | manual | off
 ctxslim --max-tools <n>       override top-K (default 24)
 ctxslim --no-stats            don't persist session stats
 ctxslim --quiet               minimal logging
-ctxslim stats                 show lifetime savings
+ctxslim stats [--json]      show lifetime savings (JSON with --json)
 ctxslim doctor                validate config + connectivity
 ```
 
-Session stats live in `~/.ctxslim/stats.jsonl`. Run `ctxslim stats` after a week of work and watch the cumulative savings.
+Session stats live in `~/.ctxslim/stats.jsonl`. Run `ctxslim stats` after a week of work and watch the cumulative savings. `ctxslim stats --json` emits `{ "summary": {...}, "byTool": [...] }` with per-tool call counts for scripting.
 
 ## 🔒 Privacy
 
@@ -154,7 +175,7 @@ If two servers expose the same tool name, Slim prefixes them (`server__tool`) an
 Yes — `url` entries are proxied via Streamable HTTP alongside stdio servers.
 
 **Where are the tests?**
-55 of them, covering the compressor, the ranking engine, config discovery, the `init` flow, and a full integration suite that speaks real MCP over real transports. `npm test`.
+86 of them, covering the compressor, the ranking engine (including adaptive scoring), glob filtering, output truncation, lazy connect, usage persistence, config discovery, the `init` flow, and a full integration suite that speaks real MCP over real transports. `npm test`.
 
 **Is it on npm?**
 Yes — [npmjs.com/package/ctxslim](https://www.npmjs.com/package/ctxslim). `npx -y ctxslim` runs it with zero install.
