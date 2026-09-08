@@ -52,6 +52,9 @@ export const segmentTasks = (records: AuditRecord[], gapSeconds: number): TaskRe
   const flush = (): void => {
     if (current.length === 0) return;
     const first = current[0];
+    if (!first) return;
+    const last = current[current.length - 1];
+    if (!last) return;
     const groups = new Map<string, { server: string; tool: string; count: number; outChars: number }>();
     for (const record of current) {
       const key = `${record.server}::${record.tool}::${record.argsHash}`;
@@ -74,7 +77,7 @@ export const segmentTasks = (records: AuditRecord[], gapSeconds: number): TaskRe
       id: `task-${tasks.length + 1}`,
       session: first.session,
       startTs: first.ts,
-      endTs: current[current.length - 1].ts,
+      endTs: last.ts,
       calls: current.length,
       reqChars: current.reduce((sum, record) => sum + record.reqChars, 0),
       outChars: current.reduce((sum, record) => sum + record.outChars, 0),

@@ -1,6 +1,8 @@
 import type { ToolDefinition } from "./types.js";
 
-export const estimateTokens = (text: string): number => Math.ceil(text.length / 4);
+export const tokensForChars = (chars: number): number => Math.ceil(chars / 4);
+
+export const estimateTokens = (text: string): number => tokensForChars(text.length);
 
 const DROP_KEYS = new Set(["$schema", "$id", "title", "examples", "$comment", "const"]);
 

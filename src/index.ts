@@ -2,6 +2,7 @@
 import { readFileSync } from "node:fs";
 import { loadAuditRecords, loadConfig, loadStatsSummary, loadUsageMap, describeConfig } from "./config.js";
 import { summarizeAudit } from "./audit.js";
+import { tokensForChars } from "./compressor.js";
 import { PRICE_AS_OF, PRICE_TABLE, dollarsFor, familyNames, parsePricesFile } from "./pricing.js";
 import { ContextSlimServer } from "./server.js";
 import { BANNER, bold, cyan, dim, fmtTokens, green, red, yellow } from "./ui.js";
@@ -203,8 +204,6 @@ const printStats = (json: boolean): void => {
 };
 
 const fmtUsd = (value: number): string => (value < 0.01 ? `$${value.toFixed(4)}` : `$${value.toFixed(2)}`);
-
-const tokensForChars = (chars: number): number => Math.ceil(chars / 4);
 
 const printAudit = (opts: { gap: number; model?: string; prices?: string; json: boolean }): void => {
   const { records, corrupt } = loadAuditRecords();
