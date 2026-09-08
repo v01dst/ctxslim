@@ -16,6 +16,20 @@ const scenarios = [
   { name: "6 servers × 12 tools", servers: { files: entry("files", 12), database: entry("database", 12), github: entry("github", 12), browser: entry("browser", 12), slack: entry("slack", 12), stripe: entry("stripe", 12) } },
 ];
 
+const waitReady = async (slim: ContextSlimServer): Promise<void> => {
+  const start = Date.now();
+  for (;;) {
+    const statuses = slim.upstreamStatuses;
+    if (statuses.length > 0 && statuses.every((s) => s.status === "ready" || s.status === "error")) {
+      const bad = statuses.filter((s) => s.status !== "ready").map((s) => s.name);
+      if (bad.length > 0) throw new Error(`upstreams failed: ${bad.join(",")}`);
+      return;
+    }
+    if (Date.now() - start > 90000) throw new Error("upstream boot timeout");
+    await new Promise((r) => setTimeout(r, 250));
+  }
+};
+
 const run = async (scenario: (typeof scenarios)[number], maxTools: number) => {
   const slim = new ContextSlimServer(
     { mcpServers: scenario.servers, slim: { maxTools, mode: "auto", descriptionBudget: 280 } },
@@ -24,6 +38,7 @@ const run = async (scenario: (typeof scenarios)[number], maxTools: number) => {
   const client = new Client({ name: "bench", version: "0.0.0" });
   const [clientT, serverT] = InMemoryTransport.createLinkedPair();
   await Promise.all([slim.start(serverT), client.connect(clientT)]);
+  await waitReady(slim);
   await client.listTools();
   const summary = slim.sessionSummary;
   await slim.stop();

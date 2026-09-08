@@ -1,0 +1,110 @@
+[
+  {
+    "scenario": "2 servers x 8 tools",
+    "tokensPerRequestBefore": 8356,
+    "tokensPerRequestAfter": 6869,
+    "savingsPct": 17.8,
+    "usdPerRequestBefore": {
+      "sonnet": 0.025068,
+      "opus": 0.12534,
+      "gpt": 0.02089,
+      "gemini": 0.010445,
+      "gemini-flash": 0.002507
+    },
+    "usdPerRequestAfter": {
+      "sonnet": 0.020607,
+      "opus": 0.103035,
+      "gpt": 0.017173,
+      "gemini": 0.008586,
+      "gemini-flash": 0.002061
+    },
+    "bigCallTokensRaw": 8018,
+    "bigCallTokensCapped": 1011,
+    "usdPerBigCallRaw": {
+      "sonnet": 0.024054,
+      "opus": 0.12027,
+      "gpt": 0.020045,
+      "gemini": 0.010023,
+      "gemini-flash": 0.002405
+    },
+    "usdPerBigCallCapped": {
+      "sonnet": 0.003033,
+      "opus": 0.015165,
+      "gpt": 0.002527,
+      "gemini": 0.001264,
+      "gemini-flash": 0.000303
+    }
+  },
+  {
+    "scenario": "4 servers x 10 tools",
+    "tokensPerRequestBefore": 20421,
+    "tokensPerRequestAfter": 9157,
+    "savingsPct": 55.2,
+    "usdPerRequestBefore": {
+      "sonnet": 0.061263,
+      "opus": 0.306315,
+      "gpt": 0.051053,
+      "gemini": 0.025526,
+      "gemini-flash": 0.006126
+    },
+    "usdPerRequestAfter": {
+      "sonnet": 0.027471,
+      "opus": 0.137355,
+      "gpt": 0.022892,
+      "gemini": 0.011446,
+      "gemini-flash": 0.002747
+    },
+    "bigCallTokensRaw": 8018,
+    "bigCallTokensCapped": 1011,
+    "usdPerBigCallRaw": {
+      "sonnet": 0.024054,
+      "opus": 0.12027,
+      "gpt": 0.020045,
+      "gemini": 0.010023,
+      "gemini-flash": 0.002405
+    },
+    "usdPerBigCallCapped": {
+      "sonnet": 0.003033,
+      "opus": 0.015165,
+      "gpt": 0.002527,
+      "gemini": 0.001264,
+      "gemini-flash": 0.000303
+    }
+  },
+  {
+    "scenario": "6 servers x 12 tools",
+    "tokensPerRequestBefore": 36178,
+    "tokensPerRequestAfter": 9156,
+    "savingsPct": 74.7,
+    "usdPerRequestBefore": {
+      "sonnet": 0.108534,
+      "opus": 0.54267,
+      "gpt": 0.090445,
+      "gemini": 0.045222,
+      "gemini-flash": 0.010853
+    },
+    "usdPerRequestAfter": {
+      "sonnet": 0.027468,
+      "opus": 0.13734,
+      "gpt": 0.02289,
+      "gemini": 0.011445,
+      "gemini-flash": 0.002747
+    },
+    "bigCallTokensRaw": 8018,
+    "bigCallTokensCapped": 1011,
+    "usdPerBigCallRaw": {
+      "sonnet": 0.024054,
+      "opus": 0.12027,
+      "gpt": 0.020045,
+      "gemini": 0.010023,
+      "gemini-flash": 0.002405
+    },
+    "usdPerBigCallCapped": {
+      "sonnet": 0.003033,
+      "opus": 0.015165,
+      "gpt": 0.002527,
+      "gemini": 0.001264,
+      "gemini-flash": 0.000303
+    }
+  }
+]
