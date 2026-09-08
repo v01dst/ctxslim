@@ -543,4 +543,8 @@ export class ContextSlimServer {
   get sessionSummary(): { tokensBefore: number; tokensAfter: number; callsRouted: number } {
     return { tokensBefore: this.tokensBefore, tokensAfter: this.tokensAfter, callsRouted: this.callsRouted };
   }
+
+  get upstreamStatuses(): { name: string; status: string }[] {
+    return [...this.upstreams.entries()].map(([name, upstream]) => ({ name, status: upstream.status }));
+  }
 }

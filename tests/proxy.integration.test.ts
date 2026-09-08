@@ -19,9 +19,12 @@ const makeConfigFile = (servers: Record<string, { command: string; args: string[
 
 const META_TOOL_NAMES = new Set(["search_tools", "enable_tools", "list_servers", "slim_stats"]);
 
-const waitForReady = async (client: Client): Promise<void> => {
+const waitForReady = async (client: Client, slimServer: ContextSlimServer): Promise<void> => {
   await vi.waitFor(
     async () => {
+      const statuses = slimServer.upstreamStatuses;
+      const settled = statuses.length > 0 && statuses.every((s) => s.status === "ready" || s.status === "error");
+      expect(settled).toBe(true);
       const { tools } = await client.listTools();
       expect(tools.some((tool) => !META_TOOL_NAMES.has(tool.name))).toBe(true);
     },
@@ -35,7 +38,7 @@ const startProxy = async (configFile: string, slim: Record<string, unknown> = {}
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([slimServer.start(serverTransport), client.connect(clientTransport)]);
-  await waitForReady(client);
+  await waitForReady(client, slimServer);
   return { slimServer, client };
 };
 
