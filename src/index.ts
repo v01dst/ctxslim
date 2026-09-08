@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { loadConfig, loadStatsSummary, describeConfig } from "./config.js";
+import { loadConfig, loadStatsSummary, loadUsageMap, describeConfig } from "./config.js";
 import { ContextSlimServer } from "./server.js";
 import { BANNER, bold, cyan, dim, fmtTokens, green, red, yellow } from "./ui.js";
 import { applyInit, existingTargets, planInit, resolveTarget } from "./init.js";
@@ -19,7 +19,7 @@ const usage = (): string =>
     `    ctxslim --max-tools <n>     Max tools exposed per turn (default: 24)`,
     `    ctxslim --quiet             No banner, minimal logging`,
     `    ctxslim --no-stats          Don't write session stats to ~/.ctxslim`,
-    `    ctxslim stats               Show saved token savings`,
+    `    ctxslim stats [--json]          Show saved token savings (JSON with --json)`,
     `    ctxslim doctor              Check config and server connectivity`,
     `    ctxslim --help              This message`,
     "",
@@ -34,6 +34,7 @@ type Args = {
   command?: string;
   client?: string;
   yes?: boolean;
+  json?: boolean;
 };
 
 const parseArgs = (argv: string[]): Args => {
@@ -68,6 +69,8 @@ const parseArgs = (argv: string[]): Args => {
     } else if (arg === "--version" || arg === "-v") {
       process.stdout.write("0.2.0\n");
       process.exit(0);
+    } else if (arg === "--json") {
+      args.json = true;
     } else if (arg === "stats" || arg === "doctor" || arg === "init") {
       args.command = arg;
     } else {
@@ -143,26 +146,40 @@ const runInit = (args: Args): void => {
   );
 };
 
-const printStats = (): void => {
+const printStats = (json: boolean): void => {
   const { summary } = loadStatsSummary();
-  if (summary.sessions === 0) {
+  const usage = loadUsageMap();
+  const byTool = Object.entries(usage)
+    .map(([key, record]) => ({ key, count: record.count, lastUsed: record.lastUsed }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 20);
+  if (json) {
+    process.stdout.write(`${JSON.stringify({ summary, byTool }, null, 2)}\n`);
+    return;
+  }
+  if (summary.sessions === 0 && byTool.length === 0) {
     process.stdout.write(
       `  ${dim("No sessions recorded yet.")}\n  ${dim("Run ctxslim with your MCP client and stats will appear here.")}\n`
     );
     return;
   }
-  process.stdout.write(
-    [
-      "",
-      `  ${bold("CtxSlim")} ${dim("— session history")}`,
-      "",
-      `  sessions recorded   ${summary.sessions}`,
-      `  tool calls routed   ${summary.totalCalls}`,
-      `  avg context size    ${fmtTokens(Math.round(summary.avgTokensBefore))} → ${fmtTokens(Math.round(summary.avgTokensAfter))} tokens`,
-      `  avg savings         ${green(`-${summary.avgSavingsPct.toFixed(1)}%`)}`,
-      "",
-    ].join("\n")
-  );
+  const lines = [
+    "",
+    `  ${bold("CtxSlim")} ${dim("— usage stats")}`,
+    "",
+    `  sessions recorded   ${summary.sessions}`,
+    `  tool calls routed   ${summary.totalCalls}`,
+    `  avg context size    ${fmtTokens(Math.round(summary.avgTokensBefore))} → ${fmtTokens(Math.round(summary.avgTokensAfter))} tokens`,
+    `  avg savings         ${green(`-${summary.avgSavingsPct.toFixed(1)}%`)}`,
+  ];
+  if (byTool.length > 0) {
+    lines.push("", `  ${bold("Top tools (all sessions)")}`);
+    for (const item of byTool.slice(0, 10)) {
+      lines.push(`    ${String(item.count).padStart(5)}×  ${item.key}`);
+    }
+  }
+  lines.push("");
+  process.stdout.write(lines.join("\n"));
 };
 
 const loadConfigSafe = (configPath?: string): ReturnType<typeof loadConfig> => {
@@ -186,7 +203,7 @@ const runDoctor = (args: Args): void => {
 const main = async (): Promise<void> => {
   const args = parseArgs(process.argv.slice(2));
   if (args.command === "stats") {
-    printStats();
+    printStats(args.json === true);
     return;
   }
   if (args.command === "init") {
