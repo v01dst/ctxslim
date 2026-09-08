@@ -17,7 +17,7 @@ import { compressTool } from "./compressor.js";
 import { matchesAny } from "./glob.js";
 import { compressToolResult } from "./output.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
-import type { ContextSlimConfig, SlimMode, ToolDefinition } from "./types.js";
+import type { ContextSlimConfig, ServerEntry, SlimMode, ToolDefinition } from "./types.js";
 import { META_TOOLS, formatSearchResults, formatServerList } from "./meta.js";
 import { ToolIndex, adaptiveScore } from "./ranker.js";
 import type { UsageRecord } from "./ranker.js";
@@ -119,37 +119,46 @@ export class ContextSlimServer {
     if (entries.length === 0) {
       throw new Error("No MCP servers configured. Add servers to your config's mcpServers object.");
     }
-    this.log(`${dim("connecting to")} ${entries.length} server${entries.length === 1 ? "" : "s"}${this.quiet ? "" : " ..."}`);
-    const upstreams = entries.map(([name, entry]) => {
-      const upstream = new Upstream(name, entry, {
-        onToolsChanged: () => this.rebuildIndex(),
-        onLog: (message) => this.log(message),
-      });
-      this.upstreams.set(name, upstream);
-      return { name, upstream };
-    });
-    const results = await Promise.allSettled(upstreams.map(({ upstream }) => upstream.start(this.connectTimeout)));
-    const failed = results.filter((result) => result.status === "rejected");
-    for (let i = 0; i < upstreams.length; i += 1) {
-      const { name } = upstreams[i]!;
-      const result = results[i];
-      if (result && result.status === "rejected") {
-        const reason = result.reason;
-        this.logError(`server "${name}" failed: ${reason instanceof Error ? reason.message : String(reason)}`);
-      } else {
-        this.log(`${green("✓")} ${name} ${dim(`(${this.upstreams.get(name)?.tools.length ?? 0} tools)`)}`);
-      }
-    }
-    if (failed.length === entries.length) {
-      throw new Error(
-        `All ${entries.length} upstream server${entries.length === 1 ? "" : "s"} failed to connect. ` +
-          "Check that the commands in your config work on their own."
-      );
-    }
-    this.rebuildIndex();
     this.registerHandlers();
     await this.server.connect(transport ?? new StdioServerTransport());
     this.started = true;
+    this.log(`connecting to ${entries.length} server${entries.length === 1 ? "" : "s"} in the background`);
+    this.connectUpstreams(entries);
+  }
+
+  private connectUpstreams(entries: [string, ServerEntry][]): void {
+    for (const [name, entry] of entries) {
+      const upstream = new Upstream(name, entry, {
+        onToolsChanged: () => {
+          this.rebuildIndex();
+          void this.notifyToolsChanged();
+        },
+        onLog: (message) => this.log(message),
+      });
+      this.upstreams.set(name, upstream);
+      void upstream
+        .start(this.connectTimeout)
+        .then(() => {
+          this.rebuildIndex();
+          void this.notifyToolsChanged();
+          this.log(`${green("✓")} ${name} ${dim(`(${upstream.tools.length} tools)`)}`);
+        })
+        .catch((reason: unknown) => {
+          this.logError(`server "${name}" failed: ${reason instanceof Error ? reason.message : String(reason)}`);
+        })
+        .finally(() => this.maybeLogAllFailed());
+    }
+  }
+
+  private maybeLogAllFailed(): void {
+    const upstreams = [...this.upstreams.values()];
+    if (!upstreams.every((upstream) => upstream.status !== "connecting")) return;
+    if (!upstreams.some((upstream) => upstream.status === "ready")) {
+      this.logError(
+        `All ${upstreams.length} upstream server${upstreams.length === 1 ? "" : "s"} failed to connect. ` +
+          "Check the commands in your config."
+      );
+    }
   }
 
   private registerHandlers(): void {

@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { afterAll, describe, expect, it } from "vitest";
+import { afterAll, describe, expect, it, vi } from "vitest";
 import { ContextSlimServer } from "../src/server.js";
 import { loadStatsSummary } from "../src/config.js";
 
@@ -17,12 +17,25 @@ const makeConfigFile = (servers: Record<string, { command: string; args: string[
   return path;
 };
 
+const META_TOOL_NAMES = new Set(["search_tools", "enable_tools", "list_servers", "slim_stats"]);
+
+const waitForReady = async (client: Client): Promise<void> => {
+  await vi.waitFor(
+    async () => {
+      const { tools } = await client.listTools();
+      expect(tools.some((tool) => !META_TOOL_NAMES.has(tool.name))).toBe(true);
+    },
+    { timeout: 15000, interval: 250 }
+  );
+};
+
 const startProxy = async (configFile: string, slim: Record<string, unknown> = {}, stats = false) => {
   const raw = JSON.parse(await (await import("node:fs/promises")).readFile(configFile, "utf8"));
   const slimServer = new ContextSlimServer({ ...raw, slim: { ...raw.slim, ...slim } }, { stats });
   const client = new Client({ name: "test-client", version: "0.0.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   await Promise.all([slimServer.start(serverTransport), client.connect(clientTransport)]);
+  await waitForReady(client);
   return { slimServer, client };
 };
 
