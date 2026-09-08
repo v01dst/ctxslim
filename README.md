@@ -151,14 +151,47 @@ ctxslim --max-tools <n>       override top-K (default 24)
 ctxslim --no-stats            don't persist session stats
 ctxslim --quiet               minimal logging
 ctxslim stats [--json]      show lifetime savings (JSON with --json)
+ctxslim audit [--gap <s>] [--model <fam>] [--prices <file>] [--json]
+                                show per-task dollar spend (prices are estimates)
 ctxslim doctor                validate config + connectivity
 ```
 
 Session stats live in `~/.ctxslim/stats.jsonl`. Run `ctxslim stats` after a week of work and watch the cumulative savings. `ctxslim stats --json` emits `{ "summary": {...}, "byTool": [...] }` with per-tool call counts for scripting.
 
+## 💸 Spend audit
+
+Every tool call the proxy routes is metered to `~/.ctxslim/audit.jsonl`. `ctxslim audit` turns that meter into **per-task dollar spend**: calls are grouped into tasks by session with an idle gap, then ranked as top tasks and top tools, with duplicate-call and error waste called out separately.
+
+Example sketch:
+
+```
+tasks               12
+tool calls          148
+tool-output spend   sonnet $0.0234  opus $0.0581  haiku $0.0042
+definitions/request ~9.2k tokens  sonnet $0.0276/$0.0028 (full/cached)
+duplicate waste     $0.0031 (sonnet)
+error waste         $0.0008 (sonnet)
+
+Top tasks (sonnet)
+  task-03      21 calls  $0.0062  github
+Top tools (sonnet)
+    34×  $0.0081  github::search_code
+Duplicate calls (paid N× for identical args)
+     5×  $0.0020 waste  github::search_code
+```
+
+Flags:
+
+- `--gap <s>`: idle seconds that split one task from the next (default: 120).
+- `--model <fam>`: headline family for the waste and top-list figures (default: sonnet).
+- `--prices <file>`: custom price-table JSON overriding the built-in table.
+- `--json`: full machine-readable `{ summary, tasks, tools, waste }` for scripting.
+
+Two pricing rules: tool outputs are priced as **input** tokens (chars/4 estimator), and definitions are shown per request as **full/cached** so you see both the uncompressed and prompt-cached cost. Prices are indicative as of 2026-09-08 — override with `--prices` when they drift.
+
 ## 🔒 Privacy
 
-CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`) and tool usage (`~/.ctxslim/usage.json`) stay on your disk, are local-only, and are both disabled by `--no-stats`.
+CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`), tool usage (`~/.ctxslim/usage.json`) and the audit meter (`~/.ctxslim/audit.jsonl`) stay on your disk, are local-only, and are all disabled by `--no-stats`. The audit meter records sizes and hashes only — never argument or result content.
 
 ## ❓ FAQ
 
