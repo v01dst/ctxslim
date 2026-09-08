@@ -32,6 +32,14 @@ type ResolvedTool = { key: string; server: string; originalName: string; exposed
 
 const nowIso = (): string => new Date().toISOString();
 
+const safeChars = (value: unknown): number => {
+  try {
+    return JSON.stringify(value)?.length ?? 0;
+  } catch {
+    return 0;
+  }
+};
+
 export class ContextSlimServer {
   private readonly config: ContextSlimConfig;
   private readonly statsEnabled: boolean;
@@ -62,7 +70,7 @@ export class ContextSlimServer {
     this.statsEnabled = opts.stats ?? config.slim?.stats ?? true;
     this.quiet = opts.quiet ?? false;
     this.server = new Server(
-      { name: "ctxslim", version: "0.4.0" },
+      { name: "ctxslim", version: "0.4.1" },
       {
         capabilities: {
           tools: { listChanged: true },
@@ -396,9 +404,9 @@ export class ContextSlimServer {
         isError: true,
       };
     }
+    const callStart = Date.now();
     try {
-      const callStart = Date.now();
-      const reqChars = JSON.stringify(args ?? {}).length;
+      const reqChars = safeChars(args ?? {});
       const result = await upstream.callTool(resolvedTool.originalName, args);
       const maxChars = this.config.mcpServers[resolvedTool.server]?.output?.maxChars;
       const finalResult = maxChars ? compressToolResult(result, maxChars).result : result;
@@ -407,7 +415,7 @@ export class ContextSlimServer {
         tool: resolvedTool.originalName,
         args,
         reqChars,
-        outChars: JSON.stringify(finalResult ?? {}).length,
+        outChars: safeChars(finalResult ?? {}),
         isError: false,
         durationMs: Date.now() - callStart,
       });
@@ -426,10 +434,10 @@ export class ContextSlimServer {
         server: resolvedTool.server,
         tool: resolvedTool.originalName,
         args,
-        reqChars: JSON.stringify(args ?? {}).length,
-        outChars: JSON.stringify(errorResult).length,
+        reqChars: safeChars(args ?? {}),
+        outChars: safeChars(errorResult),
         isError: true,
-        durationMs: 0,
+        durationMs: Date.now() - callStart,
       });
       return errorResult;
     }
@@ -568,7 +576,7 @@ export class ContextSlimServer {
   printBanner(source: string): void {
     if (this.quiet) return;
     process.stderr.write(`${cyan(BANNER)}\n`);
-    process.stderr.write(`  ${bold("CtxSlim")} ${dim("v0.4.0")} ${dim("— MCP without the bloat")}\n\n`);
+    process.stderr.write(`  ${bold("CtxSlim")} ${dim("v0.4.1")} ${dim("— MCP without the bloat")}\n\n`);
     process.stderr.write(`  ${dim("config")}   ${source}\n`);
     process.stderr.write(`  ${dim("mode")}     ${this.mode}\n`);
     if (this.tokensBefore > 0 && this.tokensAfter > 0 && this.mode !== "off") {

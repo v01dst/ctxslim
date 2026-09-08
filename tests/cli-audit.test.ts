@@ -63,6 +63,15 @@ describe("ctxslim audit CLI", () => {
     expect(out).toContain("No audit data");
   });
 
+  it("emits a pinned empty --json shape against an empty dir", () => {
+    const parsed = JSON.parse(run(mkdtempSync(join(tmpdir(), "ctxslim-cliaudit-")), ["--json"]));
+    expect(parsed.summary).toBeNull();
+    expect(parsed.tasks).toEqual([]);
+    expect(parsed.tools).toEqual([]);
+    expect(parsed.waste.duplicates).toEqual([]);
+    expect(parsed.waste.errors).toEqual([]);
+  });
+
   it("rejects unknown --model and bad --gap", () => {
     const dir = seedDir();
     expect(() => run(dir, ["--model", "nope"])).toThrow();

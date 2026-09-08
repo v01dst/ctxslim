@@ -76,7 +76,7 @@ const parseArgs = (argv: string[]): Args => {
       process.stdout.write(usage() + "\n");
       process.exit(0);
     } else if (arg === "--version" || arg === "-v") {
-      process.stdout.write("0.4.0\n");
+      process.stdout.write("0.4.1\n");
       process.exit(0);
     } else if (arg === "--json") {
       args.json = true;
@@ -237,8 +237,13 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
     return;
   }
   const summary = summarizeAudit(records, opts.gap);
-  const { lines } = loadStatsSummary();
-  const defsTokens = lines.length > 0 ? Math.round(lines.reduce((sum, line) => sum + line.tokensAfter, 0) / lines.length) : 0;
+  let defsTokens = 0;
+  try {
+    const { lines } = loadStatsSummary();
+    defsTokens = lines.length > 0 ? Math.round(lines.reduce((sum, line) => sum + line.tokensAfter, 0) / lines.length) : 0;
+  } catch {
+    defsTokens = 0;
+  }
   const spendByFamily: Record<string, number> = {};
   for (const row of table) spendByFamily[row.family] = dollarsFor(tokensForChars(summary.totalOutChars), row.inputPer1M);
   const defsByFamily: Record<string, { full: number; cached: number }> = {};
@@ -253,6 +258,18 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
     for (const row of table) out[row.family] = dollarsFor(tokensForChars(chars), row.inputPer1M);
     return out;
   };
+  const byError = new Map<string, { count: number; outChars: number }>();
+  for (const record of records) {
+    if (!record.isError) continue;
+    const key = `${record.server}::${record.tool}`;
+    const entry = byError.get(key) ?? { count: 0, outChars: 0 };
+    entry.count += 1;
+    entry.outChars += record.outChars;
+    byError.set(key, entry);
+  }
+  const errorGroups = [...byError.entries()]
+    .map(([key, entry]) => ({ key, count: entry.count, outChars: entry.outChars }))
+    .sort((a, b) => b.outChars - a.outChars);
   if (opts.json) {
     const tasks = summary.tasks.map((task) => ({
       id: task.id,
@@ -274,15 +291,6 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
     const errors: { key: string; count: number; wasteTokens: number; spend: Record<string, number> }[] = [];
     for (const task of summary.tasks) {
       for (const dup of task.dups) duplicates.push({ key: dup.key, count: dup.count, wasteTokens: tokensForChars(dup.wasteChars), spend: wasteSpend(dup.wasteChars) });
-    }
-    const byError = new Map<string, { count: number; outChars: number }>();
-    for (const record of records) {
-      if (!record.isError) continue;
-      const key = `${record.server}::${record.tool}`;
-      const entry = byError.get(key) ?? { count: 0, outChars: 0 };
-      entry.count += 1;
-      entry.outChars += record.outChars;
-      byError.set(key, entry);
     }
     for (const [key, entry] of byError) errors.push({ key, count: entry.count, wasteTokens: tokensForChars(entry.outChars), spend: wasteSpend(entry.outChars) });
     process.stdout.write(
@@ -321,12 +329,14 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
     `  definitions/request ~${fmtTokens(defsTokens)} tokens  ${table.map((row) => `${row.family} ${fmtUsd(defsByFamily[row.family]?.full ?? 0)}/${fmtUsd(defsByFamily[row.family]?.cached ?? 0)}`).join("  ")} ${dim("(full/cached)")}`,
     `  duplicate waste     ${fmtUsd(wasteSpend(summary.dupWasteChars)[headFamily] ?? 0)} ${dim(`(${headFamily})`)}`,
     `  error waste         ${fmtUsd(wasteSpend(summary.errorWasteChars)[headFamily] ?? 0)} ${dim(`(${headFamily})`)}`,
+    ...(corrupt > 0 ? [`  ${dim(`(${corrupt} corrupt audit lines skipped)`)}`] : []),
     "",
     `  ${bold(`Top tasks (${headFamily})`)}`,
   ];
   for (const task of summary.tasks.slice(0, 10)) {
     const dominant = Object.entries(task.byServer).sort((a, b) => b[1] - a[1])[0]?.[0] ?? "-";
-    out.push(`    ${task.id.padEnd(8)} ${String(task.calls).padStart(4)} calls  ${fmtUsd(dollarsFor(tokensForChars(task.outChars), table.find((row) => row.family === headFamily)?.inputPer1M ?? 0))}  ${dim(dominant)}`);
+    const seconds = Math.max(0, Math.round((task.endTs - task.startTs) / 1000));
+    out.push(`    ${task.id.padEnd(8)} ${String(task.calls).padStart(4)} calls  ${fmtUsd(dollarsFor(tokensForChars(task.outChars), table.find((row) => row.family === headFamily)?.inputPer1M ?? 0))}  ${dim(dominant)}  ${dim(`${seconds}s`)}`);
   }
   out.push("", `  ${bold(`Top tools (${headFamily})`)}`);
   for (const row of summary.tools.slice(0, 10)) {
@@ -337,7 +347,14 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
   if (dupGroups.length > 0) {
     out.push("", `  ${bold("Duplicate calls (paid N× for identical args)")}`);
     for (const dup of dupGroups) {
-      out.push(`    ${String(dup.count).padStart(4)}×  ${fmtUsd(dollarsFor(tokensForChars(dup.wasteChars), table.find((entry) => entry.family === headFamily)?.inputPer1M ?? 0))} waste  ${dup.server}::${dup.tool}`);
+      const hashHint = dup.key.split("::")[2]?.slice(0, 8) ?? "";
+      out.push(`    ${String(dup.count).padStart(4)}×  ${fmtUsd(dollarsFor(tokensForChars(dup.wasteChars), table.find((entry) => entry.family === headFamily)?.inputPer1M ?? 0))} waste  ${dup.server}::${dup.tool}  ${dim(hashHint)}`);
+    }
+  }
+  if (errorGroups.length > 0) {
+    out.push("", `  ${bold("Error burns (paid for failed calls)")}`);
+    for (const group of errorGroups.slice(0, 10)) {
+      out.push(`    ${String(group.count).padStart(4)}×  ${fmtUsd(dollarsFor(tokensForChars(group.outChars), table.find((entry) => entry.family === headFamily)?.inputPer1M ?? 0))} waste  ${group.key}`);
     }
   }
   out.push("", `  ${dim("Model tokens excluded — MCP-attributable spend only. Tune with --gap, --model, --prices.")}`, "");

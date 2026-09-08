@@ -167,7 +167,7 @@ Example sketch:
 ```
 tasks               12
 tool calls          148
-tool-output spend   sonnet $0.0234  opus $0.0581  haiku $0.0042
+tool-output spend   sonnet $0.0234  opus $0.0581  gemini-flash $0.0042
 definitions/request ~9.2k tokens  sonnet $0.0276/$0.0028 (full/cached)
 duplicate waste     $0.0031 (sonnet)
 error waste         $0.0008 (sonnet)
@@ -191,7 +191,7 @@ Two pricing rules: tool outputs are priced as **input** tokens (chars/4 estimato
 
 ## 🔒 Privacy
 
-CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`), tool usage (`~/.ctxslim/usage.json`) and the audit meter (`~/.ctxslim/audit.jsonl`) stay on your disk, are local-only, and are all disabled by `--no-stats`. The audit meter records sizes and hashes only — never argument or result content.
+CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`), tool usage (`~/.ctxslim/usage.json`) and the audit meter (`~/.ctxslim/audit.jsonl`) stay on your disk, are local-only, and are all disabled by `--no-stats`. The audit meter records sizes and hashes only — never argument or result content. Note that the hashes identify repeated calls, not hide low-entropy argument values — treat `audit.jsonl` as sensitive local data.
 
 ## ❓ FAQ
 
@@ -208,7 +208,7 @@ If two servers expose the same tool name, Slim prefixes them (`server__tool`) an
 Yes — `url` entries are proxied via Streamable HTTP alongside stdio servers.
 
 **Where are the tests?**
-86 of them, covering the compressor, the ranking engine (including adaptive scoring), glob filtering, output truncation, lazy connect, usage persistence, config discovery, the `init` flow, and a full integration suite that speaks real MCP over real transports. `npm test`.
+108 of them, covering the compressor, the ranking engine (including adaptive scoring), glob filtering, output truncation, lazy connect, usage persistence, config discovery, the `init` flow, the spend-audit CLI (audit metering, pricing, and JSON output), and a full integration suite that speaks real MCP over real transports. `npm test`.
 
 **Is it on npm?**
 Yes — [npmjs.com/package/ctxslim](https://www.npmjs.com/package/ctxslim). `npx -y ctxslim` runs it with zero install.

@@ -188,19 +188,30 @@ export type StatsSummary = {
   avgSavingsPct: number;
 };
 
-export const loadStatsSummary = (): { summary: StatsSummary; lines: SessionStats[] } => {
+export const loadStatsSummary = (): { summary: StatsSummary; lines: SessionStats[]; corrupt: number } => {
   const file = join(statsDir(), "stats.jsonl");
-  if (!existsSync(file)) return { summary: { sessions: 0, totalCalls: 0, avgTokensBefore: 0, avgTokensAfter: 0, avgSavingsPct: 0 }, lines: [] };
-  const lines = readFileSync(file, "utf8")
-    .split("\n")
-    .filter(Boolean)
-    .map((line) => JSON.parse(line) as SessionStats);
+  if (!existsSync(file)) return { summary: { sessions: 0, totalCalls: 0, avgTokensBefore: 0, avgTokensAfter: 0, avgSavingsPct: 0 }, lines: [], corrupt: 0 };
+  const lines: SessionStats[] = [];
+  let corrupt = 0;
+  for (const line of readFileSync(file, "utf8").split("\n").filter(Boolean)) {
+    try {
+      const parsed: unknown = JSON.parse(line);
+      const stats = parsed as Partial<SessionStats> | null;
+      if (stats && typeof stats.callsRouted === "number" && typeof stats.tokensBefore === "number" && typeof stats.tokensAfter === "number") {
+        lines.push(stats as SessionStats);
+      } else {
+        corrupt += 1;
+      }
+    } catch {
+      corrupt += 1;
+    }
+  }
   const sessions = lines.length;
   const totalCalls = lines.reduce((sum, line) => sum + line.callsRouted, 0);
   const avgTokensBefore = sessions ? lines.reduce((sum, line) => sum + line.tokensBefore, 0) / sessions : 0;
   const avgTokensAfter = sessions ? lines.reduce((sum, line) => sum + line.tokensAfter, 0) / sessions : 0;
   const avgSavingsPct = avgTokensBefore > 0 ? ((avgTokensBefore - avgTokensAfter) / avgTokensBefore) * 100 : 0;
-  return { summary: { sessions, totalCalls, avgTokensBefore, avgTokensAfter, avgSavingsPct }, lines };
+  return { summary: { sessions, totalCalls, avgTokensBefore, avgTokensAfter, avgSavingsPct }, lines, corrupt };
 };
 
 export const computeSessionTokens = (
