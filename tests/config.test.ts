@@ -147,3 +147,18 @@ describe("session stats", () => {
     delete process.env.CTX_SLIM_STATS_DIR;
   });
 });
+
+it("parses images options on entries", () => {
+  const config = normalizeConfig(
+    { mcpServers: { cam: { command: "node", images: { scale: 0.5, format: "jpeg", quality: 70 } } } },
+    "test"
+  );
+  expect(config.mcpServers.cam).toMatchObject({ images: { scale: 0.5, format: "jpeg", quality: 70 } });
+});
+
+it("rejects invalid images options", () => {
+  expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { scale: 0 } } } }, "test")).toThrow(/images\.scale/);
+  expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { scale: 2 } } } }, "test")).toThrow(/images\.scale/);
+  expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { format: "gif" } } } }, "test")).toThrow(/images\.format/);
+  expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { quality: 101 } } } }, "test")).toThrow(/images\.quality/);
+});

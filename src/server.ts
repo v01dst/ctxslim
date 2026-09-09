@@ -16,6 +16,7 @@ import type { ServerResult } from "@modelcontextprotocol/sdk/types.js";
 import { compressTool, truncateWords } from "./compressor.js";
 import { matchesAny } from "./glob.js";
 import { compressToolResult } from "./output.js";
+import { loadImageEngine, processImages, resolveImageSpec } from "./images.js";
 import { hashArgs } from "./audit.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
 import type { ContextSlimConfig, ServerEntry, SlimMode, ToolDefinition } from "./types.js";
@@ -336,6 +337,18 @@ export class ContextSlimServer {
     }
   }
 
+  private async maybeDownsample(server: string, result: unknown): Promise<unknown> {
+    const spec = this.config.mcpServers[server]?.images;
+    if (!spec) return result;
+    const engine = await loadImageEngine();
+    if (!engine) {
+      this.log(`images: "sharp" is not installed — passing images through unchanged (npm i sharp to enable)`);
+      return result;
+    }
+    const { result: out } = await processImages(result, resolveImageSpec(spec), engine, (message) => this.log(message));
+    return out;
+  }
+
   private exposedTools(): ToolDefinition[] {
     const now = Date.now();
     const readyTools: ResolvedTool[] = [];
@@ -430,7 +443,8 @@ export class ContextSlimServer {
       const reqChars = safeChars(args ?? {});
       const result = await upstream.callTool(resolvedTool.originalName, args);
       const maxChars = this.config.mcpServers[resolvedTool.server]?.output?.maxChars;
-      const finalResult = maxChars ? compressToolResult(result, maxChars).result : result;
+      const compressed = maxChars ? compressToolResult(result, maxChars).result : result;
+      const finalResult = await this.maybeDownsample(resolvedTool.server, compressed);
       this.recordAudit({
         server: resolvedTool.server,
         tool: resolvedTool.originalName,

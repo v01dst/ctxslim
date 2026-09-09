@@ -38,10 +38,23 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
         ...(Array.isArray(e.include) ? { include: e.include.map(String) } : {}),
         ...(Array.isArray(e.exclude) ? { exclude: e.exclude.map(String) } : {}),
         ...(e.output && typeof e.output === "object" ? { output: e.output as { maxChars?: number } } : {}),
+        ...(e.images && typeof e.images === "object" ? { images: e.images as { scale?: number; format?: "jpeg" | "png"; quality?: number } } : {}),
       };
       const output = (mcpServers[name] as { output?: { maxChars?: number } }).output;
       if (output && (typeof output.maxChars !== "number" || output.maxChars <= 0)) {
         throw new Error(`Server "${name}" in ${source} has invalid output.maxChars (must be a positive number)`);
+      }
+      const images = (mcpServers[name] as { images?: { scale?: number; format?: string; quality?: number } }).images;
+      if (images) {
+        if (images.scale !== undefined && (typeof images.scale !== "number" || !(images.scale > 0) || images.scale > 1)) {
+          throw new Error(`Server "${name}" in ${source} has invalid images.scale (must be a number in (0, 1])`);
+        }
+        if (images.format !== undefined && images.format !== "jpeg" && images.format !== "png") {
+          throw new Error(`Server "${name}" in ${source} has invalid images.format (must be "jpeg" or "png")`);
+        }
+        if (images.quality !== undefined && (!Number.isInteger(images.quality) || images.quality < 1 || images.quality > 100)) {
+          throw new Error(`Server "${name}" in ${source} has invalid images.quality (must be an integer 1-100)`);
+        }
       }
     } else if (typeof e.url === "string") {
       mcpServers[name] = {
@@ -50,10 +63,23 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
         ...(Array.isArray(e.include) ? { include: e.include.map(String) } : {}),
         ...(Array.isArray(e.exclude) ? { exclude: e.exclude.map(String) } : {}),
         ...(e.output && typeof e.output === "object" ? { output: e.output as { maxChars?: number } } : {}),
+        ...(e.images && typeof e.images === "object" ? { images: e.images as { scale?: number; format?: "jpeg" | "png"; quality?: number } } : {}),
       };
       const output = (mcpServers[name] as { output?: { maxChars?: number } }).output;
       if (output && (typeof output.maxChars !== "number" || output.maxChars <= 0)) {
         throw new Error(`Server "${name}" in ${source} has invalid output.maxChars (must be a positive number)`);
+      }
+      const images = (mcpServers[name] as { images?: { scale?: number; format?: string; quality?: number } }).images;
+      if (images) {
+        if (images.scale !== undefined && (typeof images.scale !== "number" || !(images.scale > 0) || images.scale > 1)) {
+          throw new Error(`Server "${name}" in ${source} has invalid images.scale (must be a number in (0, 1])`);
+        }
+        if (images.format !== undefined && images.format !== "jpeg" && images.format !== "png") {
+          throw new Error(`Server "${name}" in ${source} has invalid images.format (must be "jpeg" or "png")`);
+        }
+        if (images.quality !== undefined && (!Number.isInteger(images.quality) || images.quality < 1 || images.quality > 100)) {
+          throw new Error(`Server "${name}" in ${source} has invalid images.quality (must be an integer 1-100)`);
+        }
       }
     } else {
       throw new Error(`Server "${name}" in ${source} has neither "command" nor "url"`);

@@ -2,6 +2,7 @@ export type ServerEntryBase = {
   include?: string[];
   exclude?: string[];
   output?: { maxChars?: number };
+  images?: { scale?: number; format?: "jpeg" | "png"; quality?: number };
 };
 
 export type StdioServerEntry = ServerEntryBase & {

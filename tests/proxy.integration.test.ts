@@ -443,4 +443,13 @@ describe("proxy integration", () => {
     const result = await client.callTool({ name: "slim_stats", arguments: {} });
     expect(JSON.stringify(result)).toContain('\\"disclosure\\": true');
   });
+
+  it("passes results through unchanged when images are configured but sharp is missing", async () => {
+    const configFile = makeConfigFile({ alpha: { ...spawnEntry("alpha"), images: { scale: 0.5 } } });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile);
+    activeServers.push(slimServer);
+    const result = await client.callTool({ name: "alpha_tool_0", arguments: { id: "x" } });
+    expect(JSON.stringify(result)).toContain("alpha handled alpha_tool_0");
+  });
 });
