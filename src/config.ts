@@ -76,6 +76,7 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
     ...(slimRaw.connectTimeout !== undefined ? { connectTimeout: Number(slimRaw.connectTimeout) } : {}),
     ...(slimRaw.stats !== undefined ? { stats: Boolean(slimRaw.stats) } : {}),
     ...(slimRaw.adaptive !== undefined ? { adaptive: Boolean(slimRaw.adaptive) } : {}),
+    ...(slimRaw.disclosure !== undefined ? { disclosure: Boolean(slimRaw.disclosure) } : {}),
   };
   return { mcpServers, slim };
 };

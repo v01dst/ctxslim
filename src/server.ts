@@ -13,7 +13,7 @@ import {
   ReadResourceRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerResult } from "@modelcontextprotocol/sdk/types.js";
-import { compressTool } from "./compressor.js";
+import { compressTool, truncateWords } from "./compressor.js";
 import { matchesAny } from "./glob.js";
 import { compressToolResult } from "./output.js";
 import { hashArgs } from "./audit.js";
@@ -96,6 +96,10 @@ export class ContextSlimServer {
 
   private get adaptiveOn(): boolean {
     return this.config.slim?.adaptive !== false;
+  }
+
+  private get disclosureOn(): boolean {
+    return this.config.slim?.disclosure === true;
   }
 
   private get maxTools(): number {
@@ -274,6 +278,10 @@ export class ContextSlimServer {
     const metaNames = new Set(META_TOOLS.map((tool) => tool.name));
     this.metaPrefix = [...toolNames.keys()].some((name) => metaNames.has(name)) ? "slim__" : "";
     this.tokensBefore = entries.reduce((sum, entry) => sum + this.tokenCountOf(entry.tool), 0);
+    for (const pin of this.config.slim?.pins ?? []) {
+      const key = this.routeByExposedName.get(pin) ?? (this.resolved.has(pin) ? pin : undefined);
+      if (key) this.pinned.add(key);
+    }
   }
 
   private tokenCountOf(tool: ToolDefinition): number {
@@ -359,16 +367,29 @@ export class ContextSlimServer {
       const compressed = this.compressedOf(resolvedTool.tool);
       return { ...compressed, name: resolvedTool.exposedName } as ToolDefinition;
     });
-    this.tokensAfter = exposed.reduce((sum, tool) => {
+    const listed =
+      this.disclosureOn && this.mode !== "off"
+        ? exposed.map(
+            (tool) =>
+              ({
+                name: tool.name,
+                inputSchema: { type: "object" },
+                ...(typeof tool.description === "string" && tool.description.length > 0
+                  ? { description: truncateWords(tool.description, 120) }
+                  : {}),
+              }) as ToolDefinition
+          )
+        : exposed;
+    this.tokensAfter = listed.reduce((sum, tool) => {
       const { tokensAfter } = compressTool(tool, Number.MAX_SAFE_INTEGER);
       return sum + tokensAfter;
     }, 0);
     if (this.mode !== "off") {
       for (const meta of META_TOOLS) {
-        exposed.push({ ...meta, name: `${this.metaPrefix}${meta.name}` });
+        listed.push({ ...meta, name: `${this.metaPrefix}${meta.name}` });
       }
     }
-    return exposed;
+    return listed;
   }
 
   private metaName(name: string): string {
@@ -449,6 +470,8 @@ export class ContextSlimServer {
         return this.handleSearchTools(args);
       case "enable_tools":
         return this.handleEnableTools(args);
+      case "describe_tools":
+        return this.handleDescribeTools(args);
       case "list_servers":
         return { content: [{ type: "text", text: this.renderServerList() }] };
       case "slim_stats":
@@ -508,6 +531,27 @@ export class ContextSlimServer {
     return { content: [{ type: "text", text: lines.join("\n") }] };
   }
 
+  private async handleDescribeTools(args: Record<string, unknown> | undefined): Promise<unknown> {
+    const tools = Array.isArray(args?.tools) ? args.tools.filter((item): item is string => typeof item === "string") : [];
+    if (tools.length === 0) {
+      return { content: [{ type: "text", text: "Provide a non-empty `tools` array of tool names." }], isError: true };
+    }
+    const found: { name: string; server: string; tool: ToolDefinition }[] = [];
+    const missing: string[] = [];
+    for (const name of tools) {
+      const key = this.routeByExposedName.get(name) ?? (this.resolved.has(name) ? name : undefined);
+      const resolvedTool = key ? this.resolved.get(key) : undefined;
+      if (resolvedTool) {
+        found.push({ name: resolvedTool.exposedName, server: resolvedTool.server, tool: this.compressedOf(resolvedTool.tool) });
+      } else {
+        missing.push(name);
+      }
+    }
+    const text = formatSearchResults(found, tools.join(", "));
+    const suffix = missing.length > 0 ? `\n\nNot found (ignored): ${missing.join(", ")}` : "";
+    return { content: [{ type: "text", text: text + suffix }] };
+  }
+
   private renderServerList(): string {
     const rows = [...this.upstreams.values()].map((upstream) => ({
       name: upstream.name,
@@ -529,6 +573,7 @@ export class ContextSlimServer {
         tokensAfter: Math.round(this.tokensAfter),
         savingsPct: Number(savings.toFixed(1)),
         callsRouted: this.callsRouted,
+        disclosure: this.disclosureOn,
         uptimeMinutes: Number(((Date.now() - this.startedAt.getTime()) / 60000).toFixed(1)),
       },
       null,

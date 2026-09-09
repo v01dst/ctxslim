@@ -17,7 +17,7 @@ const makeConfigFile = (servers: Record<string, { command: string; args: string[
   return path;
 };
 
-const META_TOOL_NAMES = new Set(["search_tools", "enable_tools", "list_servers", "slim_stats"]);
+const META_TOOL_NAMES = new Set(["search_tools", "enable_tools", "describe_tools", "list_servers", "slim_stats"]);
 
 const waitForReady = async (client: Client, slimServer: ContextSlimServer): Promise<void> => {
   await vi.waitFor(
@@ -70,7 +70,7 @@ describe("proxy integration", () => {
     expect(names).toContain("enable_tools");
     expect(names).toContain("list_servers");
     expect(names).toContain("slim_stats");
-    expect(tools).toHaveLength(18);
+    expect(tools).toHaveLength(19);
   });
 
   it("compresses exposed schemas", async () => {
@@ -136,7 +136,7 @@ describe("proxy integration", () => {
     activeServers.push(slimServer);
 
     const before = await client.listTools();
-    expect(before.tools).toHaveLength(14);
+    expect(before.tools).toHaveLength(15);
 
     await client.callTool({ name: "enable_tools", arguments: { tools: ["beta_tool_0", "gamma_tool_1"] } });
     const after = await client.listTools();
@@ -152,7 +152,7 @@ describe("proxy integration", () => {
     activeServers.push(slimServer);
 
     const { tools } = await client.listTools();
-    const nonMeta = tools.filter((tool) => !["search_tools", "enable_tools", "list_servers", "slim_stats"].includes(tool.name));
+    const nonMeta = tools.filter((tool) => !["search_tools", "enable_tools", "describe_tools", "list_servers", "slim_stats"].includes(tool.name));
     expect(nonMeta).toHaveLength(5);
   });
 
@@ -278,7 +278,7 @@ describe("proxy integration", () => {
       const { client } = await startProxy(configFile, { maxTools: 8 });
       const { tools } = await client.listTools();
       const names = tools
-        .filter((tool) => !["search_tools", "enable_tools", "list_servers", "slim_stats"].includes(tool.name))
+        .filter((tool) => !["search_tools", "enable_tools", "describe_tools", "list_servers", "slim_stats"].includes(tool.name))
         .map((tool) => tool.name);
       expect(names).toContain("alpha_tool_25");
     } finally {
@@ -310,7 +310,7 @@ describe("proxy integration", () => {
 
       const { tools } = await client.listTools();
       const nonMeta = tools
-        .filter((tool) => !["search_tools", "enable_tools", "list_servers", "slim_stats"].includes(tool.name))
+        .filter((tool) => !["search_tools", "enable_tools", "describe_tools", "list_servers", "slim_stats"].includes(tool.name))
         .map((tool) => tool.name);
       expect(nonMeta).toHaveLength(12);
       expect(nonMeta.slice(0, 10).sort()).toEqual([...bigHits, ...alphaHits].sort());
@@ -360,5 +360,87 @@ describe("proxy integration", () => {
     } finally {
       delete process.env.CTX_SLIM_STATS_DIR;
     }
+  });
+
+  it("disclosure emits stubs when enabled", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { disclosure: true });
+    activeServers.push(slimServer);
+    const { tools } = await client.listTools();
+    const first = tools.find((tool) => tool.name === "alpha_tool_0");
+    expect(first).toBeDefined();
+    expect(first?.inputSchema).toEqual({ type: "object" });
+    expect((first?.description ?? "").length).toBeLessThanOrEqual(120);
+  });
+
+  it("describe_tools returns full schemas in batch", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { disclosure: true });
+    activeServers.push(slimServer);
+    const result = await client.callTool({ name: "describe_tools", arguments: { tools: ["alpha_tool_0", "nope"] } });
+    const text = JSON.stringify(result);
+    expect(text).toContain("alpha_tool_0");
+    expect(text).toContain("arguments:");
+    expect(text).toContain("nope");
+  });
+
+  it("describe_tools rejects empty tools array", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { disclosure: true });
+    activeServers.push(slimServer);
+    const result = await client.callTool({ name: "describe_tools", arguments: { tools: [] } });
+    expect(JSON.stringify(result)).toContain("non-empty");
+  });
+
+  it("stub-listed tools still callable", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { disclosure: true });
+    activeServers.push(slimServer);
+    const result = await client.callTool({ name: "alpha_tool_1", arguments: { id: "x" } });
+    expect(JSON.stringify(result)).toContain("alpha handled alpha_tool_1");
+  });
+
+  it("meta tools stay full with disclosure on", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { disclosure: true });
+    activeServers.push(slimServer);
+    const { tools } = await client.listTools();
+    const search = tools.find((tool) => tool.name === "search_tools");
+    expect(Object.keys((search?.inputSchema as Record<string, unknown>).properties as Record<string, unknown>)).toContain("query");
+  });
+
+  it("full schemas by default without disclosure flag", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile);
+    activeServers.push(slimServer);
+    const { tools } = await client.listTools();
+    const first = tools.find((tool) => tool.name === "alpha_tool_0");
+    expect(Object.keys((first?.inputSchema as Record<string, unknown>).properties as Record<string, unknown>)).toContain("id");
+  });
+
+  it("config pins seed session pins", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { maxTools: 2, pins: ["alpha::alpha_tool_5"] });
+    activeServers.push(slimServer);
+    const { tools } = await client.listTools();
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("alpha_tool_5");
+  });
+
+  it("slim_stats reports disclosure flag", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile, { disclosure: true });
+    activeServers.push(slimServer);
+    await client.listTools();
+    const result = await client.callTool({ name: "slim_stats", arguments: {} });
+    expect(JSON.stringify(result)).toContain('\\"disclosure\\": true');
   });
 });

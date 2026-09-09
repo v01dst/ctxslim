@@ -33,6 +33,18 @@ export const META_TOOLS: MetaToolDefinition[] = [
     },
   },
   {
+    name: "describe_tools",
+    description:
+      "Get full argument schemas for tools by name. Use after search_tools, or when a listed tool shows only a stub description.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        tools: { type: "array", items: { type: "string" }, description: "Tool names to describe, exactly as listed or found" },
+      },
+      required: ["tools"],
+    },
+  },
+  {
     name: "list_servers",
     description: "List the MCP servers behind CtxSlim with their connection status and tool counts.",
     inputSchema: { type: "object", properties: {} },

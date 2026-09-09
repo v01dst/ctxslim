@@ -73,6 +73,13 @@ describe("normalizeConfig", () => {
       const config = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { adaptive: false } }, "test");
       expect(config.slim?.adaptive).toBe(false);
     });
+
+    it("parses slim.disclosure flag", () => {
+      const on = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { disclosure: true } }, "test");
+      expect(on.slim?.disclosure).toBe(true);
+      const off = normalizeConfig({ mcpServers: { alpha: { command: "node" } } }, "test");
+      expect(off.slim?.disclosure).toBeUndefined();
+    });
   });
 });
 

@@ -29,6 +29,7 @@ export type SlimConfig = {
   connectTimeout?: number;
   stats?: boolean;
   adaptive?: boolean;
+  disclosure?: boolean;
 };
 
 export type ContextSlimConfig = {
