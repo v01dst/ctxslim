@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { readFileSync } from "node:fs";
+import type { ContextSlimConfig } from "./types.js";
 import { loadAuditRecords, loadConfig, loadStatsSummary, loadUsageMap, describeConfig } from "./config.js";
 import { summarizeAudit } from "./audit.js";
 import { tokensForChars } from "./compressor.js";
@@ -26,7 +27,7 @@ const usage = (): string =>
     `    ctxslim stats [--json]          Show saved token savings (JSON with --json)`,
     `    ctxslim audit [--gap <s>] [--model <fam>] [--prices <file>] [--json]`,
     `                                Show per-task dollar spend (prices are estimates)`,
-    `    ctxslim doctor              Check config and server connectivity`,
+    `    ctxslim doctor [--tune]     Check config and connectivity (tune suggests improvements)`,
     `    ctxslim --help              This message`,
     "",
   ].join("\n");
@@ -44,6 +45,7 @@ type Args = {
   gap?: number;
   model?: string;
   prices?: string;
+  tune?: boolean;
 };
 
 const parseArgs = (argv: string[]): Args => {
@@ -92,6 +94,8 @@ const parseArgs = (argv: string[]): Args => {
       const value = argv[++i];
       if (!value) fail("--prices requires a path");
       args.prices = value;
+    } else if (arg === "--tune") {
+      args.tune = true;
     } else if (arg === "stats" || arg === "doctor" || arg === "init" || arg === "audit") {
       args.command = arg;
     } else {
@@ -361,6 +365,106 @@ const printAudit = (opts: { gap: number; model?: string; prices?: string; json: 
   process.stdout.write(out.join("\n"));
 };
 
+const TUNE_PIN_CALLS = 5;
+const TUNE_COVERAGE = 0.9;
+const TUNE_BIG_OUTPUT = 8000;
+const TUNE_BIG_DEFS = 6000;
+
+type TuneSuggestion = {
+  pins: string[];
+  maxTools: number | null;
+  considerExclude: string[];
+  outputCaps: { server: string; maxChars: number }[];
+  enableDisclosure: boolean;
+  notes: string[];
+};
+
+const buildTune = (config: ContextSlimConfig): TuneSuggestion => {
+  const usage = loadUsageMap();
+  const { lines } = loadStatsSummary();
+  const { records } = loadAuditRecords();
+  const notes: string[] = [];
+  const pins = Object.entries(usage)
+    .filter(([, record]) => record.count >= TUNE_PIN_CALLS)
+    .map(([key]) => key)
+    .sort();
+  const callsByTool = new Map<string, number>();
+  for (const record of records) {
+    const key = `${record.server}::${record.tool}`;
+    callsByTool.set(key, (callsByTool.get(key) ?? 0) + 1);
+  }
+  const current = config.slim?.maxTools && config.slim.maxTools > 0 ? config.slim.maxTools : 24;
+  let maxTools: number | null = null;
+  const ranked = [...callsByTool.entries()].sort((a, b) => b[1] - a[1]);
+  const total = ranked.reduce((sum, [, count]) => sum + count, 0);
+  if (total === 0) {
+    notes.push("no call data — maxTools left as is");
+  } else {
+    let acc = 0;
+    let k = 0;
+    for (const [, count] of ranked) {
+      acc += count;
+      k += 1;
+      if (acc / total >= TUNE_COVERAGE) break;
+    }
+    if (k < current) maxTools = k;
+    else if (ranked.length > current) maxTools = ranked.length;
+  }
+  const used = new Set<string>();
+  for (const key of Object.keys(usage)) {
+    for (const server of Object.keys(config.mcpServers)) {
+      if (key === server || key.startsWith(`${server}::`)) used.add(server);
+    }
+  }
+  for (const record of records) used.add(record.server);
+  const considerExclude = Object.keys(config.mcpServers).filter((server) => !used.has(server)).sort();
+  const outByServer = new Map<string, { total: number; count: number }>();
+  for (const record of records) {
+    const entry = outByServer.get(record.server) ?? { total: 0, count: 0 };
+    entry.total += record.outChars;
+    entry.count += 1;
+    outByServer.set(record.server, entry);
+  }
+  const outputCaps = [...outByServer.entries()]
+    .filter(([, entry]) => entry.total / entry.count > TUNE_BIG_OUTPUT)
+    .map(([server]) => ({ server, maxChars: 4000 }))
+    .sort((a, b) => (a.server < b.server ? -1 : 1));
+  const meanDefs = lines.length > 0 ? lines.reduce((sum, line) => sum + line.tokensAfter, 0) / lines.length : 0;
+  const enableDisclosure = lines.length > 0 && meanDefs > TUNE_BIG_DEFS && config.slim?.disclosure !== true;
+  if (records.length === 0 && Object.keys(usage).length === 0 && lines.length === 0) {
+    notes.push("no data — run ctxslim with your MCP client first");
+  }
+  return { pins, maxTools, considerExclude, outputCaps, enableDisclosure, notes };
+};
+
+const printTune = (config: ContextSlimConfig, json: boolean): void => {
+  const tune = buildTune(config);
+  if (json) {
+    process.stdout.write(`${JSON.stringify(tune, null, 2)}\n`);
+    return;
+  }
+  const out: string[] = ["", `  ${bold("CtxSlim")} ${dim("— tune suggestions")}  ${dim("(suggest-only; nothing was written)")}`, ""];
+  out.push(`  ${bold("Pins")} ${dim(`(usage ≥ ${TUNE_PIN_CALLS} calls)`)}`);
+  if (tune.pins.length === 0) out.push(`    ${dim("no data — no pin suggestions")}`);
+  for (const pin of tune.pins) out.push(`    ${pin}`);
+  out.push("", `  ${bold("maxTools")}`);
+  out.push(tune.maxTools === null ? `    ${dim("no data — maxTools left as is")}` : `    suggest maxTools: ${tune.maxTools}`);
+  out.push("", `  ${bold("Consider excluding")} ${dim("(zero calls everywhere)")}`);
+  if (tune.considerExclude.length === 0) out.push(`    ${dim("no data — every server has calls")}`);
+  for (const server of tune.considerExclude) out.push(`    ${server}  ${dim('consider exclude: ["*"]')}`);
+  out.push("", `  ${bold("Output caps")} ${dim(`(avg result > ${TUNE_BIG_OUTPUT} chars)`)}`);
+  if (tune.outputCaps.length === 0) out.push(`    ${dim("no data — no caps suggested")}`);
+  for (const cap of tune.outputCaps) out.push(`    ${cap.server}: output.maxChars ${cap.maxChars}`);
+  out.push("", `  ${bold("Disclosure")}`);
+  out.push(tune.enableDisclosure ? `    suggest slim.disclosure: true` : `    ${dim("no data — disclosure left as is")}`);
+  if (tune.notes.length > 0) {
+    out.push("", `  ${bold("Notes")}`);
+    for (const note of tune.notes) out.push(`    ${dim(note)}`);
+  }
+  out.push("");
+  process.stdout.write(out.join("\n"));
+};
+
 const loadConfigSafe = (configPath?: string): ReturnType<typeof loadConfig> => {
   try {
     return loadConfig(configPath);
@@ -372,6 +476,10 @@ const loadConfigSafe = (configPath?: string): ReturnType<typeof loadConfig> => {
 
 const runDoctor = (args: Args): void => {
   const loaded = loadConfigSafe(args.config);
+  if (args.tune) {
+    printTune(loaded.config, args.json === true);
+    return;
+  }
   process.stdout.write(`\n  ${green("✓")} config loaded from ${loaded.source} ${dim(`(${loaded.label})`)}\n`);
   for (const line of describeConfig(loaded.config)) process.stdout.write(`${dim(line)}\n`);
   const slim = loaded.config.slim;
