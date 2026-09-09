@@ -32,9 +32,9 @@ Real numbers from the bundled benchmark (`npm run bench`), through actual MCP tr
 
 | Setup | Context before | Compressed | Top-24 ranked |
 | --- | ---: | ---: | ---: |
-| 2 servers × 8 tools | 7.4k tokens | −17.7% | −17.7% |
-| 4 servers × 10 tools | 18.5k tokens | −17.7% | **−50.6%** |
-| 6 servers × 12 tools | 33.4k tokens | −17.7% | **−72.6%** |
+| 2 servers × 8 tools | 8.4k tokens | −17.8% | −17.8% |
+| 4 servers × 10 tools | 20.4k tokens | −17.8% | **−55.2%** |
+| 6 servers × 12 tools | 36.2k tokens | −17.8% | **−74.7%** |
 
 The more servers you stack, the more Slim saves — and real-world servers (GitHub, Notion, browser automation) ship far heavier definitions than these.
 
@@ -111,9 +111,9 @@ flowchart LR
 ```
 
 1. **Instant startup** (lazy connect): the proxy answers your client immediately and boots upstreams in the background — servers appear as they connect instead of blocking on the slowest one.
-2. **Top-K exposure**: `auto` mode ranks every tool (BM25 + your usage history + pins) and exposes the best 24. The rest stay one search away, never blocked.
-3. **Compressed schemas**: boilerplate stripped, descriptions budgeted, unused `$defs` dropped.
-4. **Transparent routing**: calls go to the right server. Your agent can't tell the difference — except its context is lighter.
+2. **Top-K exposure**: `auto` mode scores every tool (BM25 match against your last search + your cross-session usage + manual pins, minus your globs) and exposes the best 24 with compressed schemas (boilerplate stripped, descriptions budgeted). With `slim.disclosure: true` it goes further: name + one-liner stubs (~40 tokens each), full schemas fetched on demand.
+3. **Transparent routing**: your agent calls any exposed — or hidden — tool by name; the proxy routes it to the right server. Results pass through your optional squeezes (`output.maxChars` truncation, `images` downsampling), then land in context. Every call is metered (sizes + hashes, never content).
+4. **The learning loop**: calls feed `usage.json`, so ranking improves the more you work. `slim_stats` shows this session, `stats` the lifetime, `audit` the dollars per task, and `doctor --tune` turns it all into config suggestions.
 
 | Meta tool | What it does |
 | --- | --- |

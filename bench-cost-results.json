@@ -2,6 +2,7 @@
   {
     "scenario": "2 servers x 8 tools",
     "tokensPerRequestBefore": 8356,
+    "tokensPerRequestCompressed": 6869,
     "tokensPerRequestAfter": 6869,
     "savingsPct": 17.8,
     "usdPerRequestBefore": {
@@ -58,6 +59,7 @@
   {
     "scenario": "4 servers x 10 tools",
     "tokensPerRequestBefore": 20421,
+    "tokensPerRequestCompressed": 16791,
     "tokensPerRequestAfter": 9157,
     "savingsPct": 55.2,
     "usdPerRequestBefore": {
@@ -114,6 +116,7 @@
   {
     "scenario": "6 servers x 12 tools",
     "tokensPerRequestBefore": 36178,
+    "tokensPerRequestCompressed": 29756,
     "tokensPerRequestAfter": 9156,
     "savingsPct": 74.7,
     "usdPerRequestBefore": {

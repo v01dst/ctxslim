@@ -73,12 +73,14 @@ for (const scenario of scenarios) {
   await close(capped.proxy, capped.client);
 
   const tokensBefore = Math.round(base.tokensBefore);
+  const tokensAfterFull = Math.round(base.tokensAfter);
   const tokensAfter = Math.round(slim.tokensAfter);
   const rawTokens = tokensForChars(rawChars);
   const cutTokens = tokensForChars(cutChars);
   rows.push({
     scenario: scenario.name,
     tokensPerRequestBefore: tokensBefore,
+    tokensPerRequestCompressed: tokensAfterFull,
     tokensPerRequestAfter: tokensAfter,
     savingsPct: Number((((tokensBefore - tokensAfter) / tokensBefore) * 100).toFixed(1)),
     usdPerRequestBefore: usd(tokensBefore),
