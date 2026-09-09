@@ -60,13 +60,13 @@
     <text x="0" y="16" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" fill="#f87171">BEFORE</text>
     <rect x="0" y="28" width="700" height="26" rx="13" fill="#334155"/>
     <rect x="0" y="28" width="640" height="26" rx="13" fill="#ef4444" opacity="0.85"/>
-    <text x="652" y="47" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="#fecaca">33.4k tok</text>
+    <text x="652" y="47" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="#fecaca">36.2k tok</text>
   </g>
   <g transform="translate(330 520)">
     <text x="0" y="16" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="bold" fill="#4ade80">AFTER</text>
     <rect x="0" y="28" width="700" height="26" rx="13" fill="#334155"/>
-    <rect x="0" y="28" width="176" height="26" rx="13" fill="#22c55e"/>
-    <text x="190" y="47" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="#bbf7d0">9.2k tok  ·  −72.6%</text>
+    <rect x="0" y="28" width="162" height="26" rx="13" fill="#22c55e"/>
+    <text x="176" y="47" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold" fill="#bbf7d0">9.2k tok  ·  −74.7%</text>
   </g>
 
   <text x="330" y="612" font-family="Arial, Helvetica, sans-serif" font-size="20" fill="#64748b" letter-spacing="2">github.com/v01dst/ctxslim</text>

@@ -6,7 +6,7 @@
 
 **Your MCP servers are eating your context. Put them on a diet.**
 
-<img src="assets/banner.png" alt="CtxSlim — 33.4k tokens down to 9.2k, a 72.6% reduction" width="100%"/>
+<img src="assets/banner.png" alt="CtxSlim — 36.2k tokens down to 9.2k, a 74.7% reduction" width="100%"/>
 
 [![npm version](https://img.shields.io/npm/v/ctxslim?style=flat-square&color=cb3837)](https://www.npmjs.com/package/ctxslim)
 [![npm downloads](https://img.shields.io/npm/dm/ctxslim?style=flat-square&color=blue)](https://www.npmjs.com/package/ctxslim)
