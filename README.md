@@ -200,7 +200,7 @@ When tool catalogs are huge, even compressed schemas add up. Opt in with `slim.d
 }
 ```
 
-With disclosure on, `list_tools` returns **stubs** instead of full schemas: each tool keeps only its `name`, a stub `inputSchema` of `{ "type": "object" }`, and a description trimmed to 120 words. Meta tools (`search_tools`, `describe_tools`, …) always keep their full schemas. Stub-listed tools stay fully callable — nothing is ever hard-blocked.
+With disclosure on, `list_tools` returns **stubs** instead of full schemas: each tool keeps only its `name`, a stub `inputSchema` of `{ "type": "object" }`, and a description trimmed to 120 characters (word-boundary trimmed). Meta tools (`search_tools`, `describe_tools`, …) always keep their full schemas. Stub-listed tools stay fully callable — nothing is ever hard-blocked.
 
 Your agent fetches what it needs on demand:
 
@@ -242,7 +242,7 @@ Behavior is **fail-open**: without `sharp` installed, results pass through uncha
 The five rules:
 
 - **Pins** (usage ≥ 5 calls): tools you call that often belong in `slim.pins`.
-- **maxTools** (90% call coverage): smallest K covering 90% of recorded calls; suggested when below your current `maxTools` (default 24).
+- **maxTools** (90% call coverage): smallest K covering 90% of recorded calls; suggested when below your current `maxTools` (default 24), or above it when more distinct tools were called.
 - **Consider excluding** (zero calls everywhere): servers with no usage, audit, or stats footprint — e.g. `consider exclude: ["*"]`.
 - **Output caps** (avg result > 8000 chars): servers whose average tool result exceeds 8000 chars get `output.maxChars 4000`.
 - **Disclosure** (mean definitions > 6000 tokens): when average per-session definitions exceed 6000 tokens and disclosure is off, suggests `slim.disclosure: true`.
