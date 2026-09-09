@@ -122,12 +122,13 @@ flowchart LR
 3. Exposed schemas are **compressed**: boilerplate keywords stripped, descriptions trimmed to a budget, unused `$defs` dropped — measured with a chars/4 token estimator and reported back to you.
 4. Tool calls are routed transparently to the right upstream server. Your agent can't tell the difference — except its context is lighter.
 
-Your agent gets four superpowers:
+Your agent gets five superpowers:
 
 | Meta tool | What it does |
 | --- | --- |
 | `search_tools` | Semantic-ish BM25 search across all connected servers |
 | `enable_tools` | Pin tools for the session so they're never swapped out |
+| `describe_tools` | Fetch full schemas for stub-listed tools by name |
 | `list_servers` | See what's connected and how healthy it is |
 | `slim_stats` | Live report of tokens saved this session |
 
@@ -153,7 +154,7 @@ ctxslim --quiet               minimal logging
 ctxslim stats [--json]      show lifetime savings (JSON with --json)
 ctxslim audit [--gap <s>] [--model <fam>] [--prices <file>] [--json]
                                 show per-task dollar spend (prices are estimates)
-ctxslim doctor                validate config + connectivity
+ctxslim doctor [--tune] [--json]  validate config + connectivity (tune suggests improvements)
 ```
 
 Session stats live in `~/.ctxslim/stats.jsonl`. Run `ctxslim stats` after a week of work and watch the cumulative savings. `ctxslim stats --json` emits `{ "summary": {...}, "byTool": [...] }` with per-tool call counts for scripting.
@@ -189,9 +190,68 @@ Flags:
 
 Two pricing rules: tool outputs are priced as **input** tokens (chars/4 estimator), and definitions are shown per request as **full/cached** so you see both the uncompressed and prompt-cached cost. Prices are indicative as of 2026-09-08 — override with `--prices` when they drift. Built-in families: `claude-fable-5-1`, `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`, `gpt-6-astra`, `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `gemini-3.1-pro` (≤200K context tier), `gemini-3.8-flash` (intro price, doubles Jan 2027).
 
+## 🔍 Progressive disclosure
+
+When tool catalogs are huge, even compressed schemas add up. Opt in with `slim.disclosure: true`:
+
+```json
+{
+  "slim": { "disclosure": true }
+}
+```
+
+With disclosure on, `list_tools` returns **stubs** instead of full schemas: each tool keeps only its `name`, a stub `inputSchema` of `{ "type": "object" }`, and a description trimmed to 120 words. Meta tools (`search_tools`, `describe_tools`, …) always keep their full schemas. Stub-listed tools stay fully callable — nothing is ever hard-blocked.
+
+Your agent fetches what it needs on demand:
+
+1. `search_tools` is the discovery path — search by task, get back full compressed schemas for the matches.
+2. `describe_tools` fetches full compressed schemas for tools by exact name (batch-friendly, ideal after seeing a stub list or search results). Unknown names are reported back and ignored.
+
+Disclosure is **off by default** — without the flag you get the standard full (compressed) schemas.
+
+## 🖼 Image downsampling
+
+Vision-heavy servers (browser, camera, screenshot tools) can flood context with full-resolution images. Cap them per server:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "command": "npx",
+      "args": ["@playwright/mcp"],
+      "images": { "scale": 0.5, "format": "jpeg", "quality": 70 }
+    }
+  }
+}
+```
+
+Defaults when a key is omitted: `scale` 0.5, `format` `"jpeg"`, `quality` 70. `scale` must be in (0, 1], `format` is `"jpeg"` or `"png"`, `quality` is an integer 1–100 (invalid values are rejected at config load).
+
+Requires `sharp`, kept as an **optional** peer dependency so the default install stays light:
+
+```bash
+npm i sharp
+```
+
+Behavior is **fail-open**: without `sharp` installed, results pass through unchanged (a stderr note says so); if a single image fails to transform, that item passes through with a warning. Image handling never strips content — it only downsamples `image` items in tool results, leaving text and structured content untouched.
+
+## 🎛 Auto-tune
+
+`ctxslim doctor --tune [--json]` reads your real usage (`usage.json`), session history (`stats.jsonl`) and call meter (`audit.jsonl`) and suggests config improvements. **Suggest-only — nothing is ever written.**
+
+The five rules:
+
+- **Pins** (usage ≥ 5 calls): tools you call that often belong in `slim.pins`.
+- **maxTools** (90% call coverage): smallest K covering 90% of recorded calls; suggested when below your current `maxTools` (default 24).
+- **Consider excluding** (zero calls everywhere): servers with no usage, audit, or stats footprint — e.g. `consider exclude: ["*"]`.
+- **Output caps** (avg result > 8000 chars): servers whose average tool result exceeds 8000 chars get `output.maxChars 4000`.
+- **Disclosure** (mean definitions > 6000 tokens): when average per-session definitions exceed 6000 tokens and disclosure is off, suggests `slim.disclosure: true`.
+
+`--json` emits the machine-readable `{ pins, maxTools, considerExclude, outputCaps, enableDisclosure, notes }` contract for scripting. With no data yet, every section reports `no data` and notes tell you to run ctxslim with your client first.
+
 ## 🔒 Privacy
 
-CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`), tool usage (`~/.ctxslim/usage.json`) and the audit meter (`~/.ctxslim/audit.jsonl`) stay on your disk, are local-only, and are all disabled by `--no-stats`. The audit meter records sizes and hashes only — never argument or result content. Note that the hashes identify repeated calls, not hide low-entropy argument values — treat `audit.jsonl` as sensitive local data.
+CtxSlim is **100% local**. No API keys. No telemetry. No network calls except to the MCP servers you configure. Your tool definitions never leave your machine. Session stats (`~/.ctxslim/stats.jsonl`), tool usage (`~/.ctxslim/usage.json`) and the audit meter (`~/.ctxslim/audit.jsonl`) stay on your disk, are local-only, and are all disabled by `--no-stats`. The audit meter records sizes and hashes only — never argument or result content. Note that the hashes identify repeated calls, not hide low-entropy argument values — treat `audit.jsonl` as sensitive local data. Image bytes are transformed locally in-process and never leave the machine; `sharp` (if installed) runs locally too.
 
 ## ❓ FAQ
 
@@ -208,7 +268,7 @@ If two servers expose the same tool name, Slim prefixes them (`server__tool`) an
 Yes — `url` entries are proxied via Streamable HTTP alongside stdio servers.
 
 **Where are the tests?**
-108 of them, covering the compressor, the ranking engine (including adaptive scoring), glob filtering, output truncation, lazy connect, usage persistence, config discovery, the `init` flow, the spend-audit CLI (audit metering, pricing, and JSON output), and a full integration suite that speaks real MCP over real transports. `npm test`.
+ 131 of them, covering the compressor, the ranking engine (including adaptive scoring), glob filtering, output truncation, progressive disclosure (`slim.disclosure` + `describe_tools`), image downsampling (fail-open engine), lazy connect, usage persistence, config discovery, the `init` flow, the spend-audit CLI (audit metering, pricing, and JSON output), the `doctor --tune` suggester, and a full integration suite that speaks real MCP over real transports. `npm test`.
 
 **Is it on npm?**
 Yes — [npmjs.com/package/ctxslim](https://www.npmjs.com/package/ctxslim). `npx -y ctxslim` runs it with zero install.
