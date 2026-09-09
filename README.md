@@ -22,21 +22,21 @@
 
 ---
 
-Every MCP server you connect dumps its **entire tool catalog** into your LLM's context. A database server, a browser server and a GitHub server can burn **30,000+ tokens before you've asked a single question** — slower responses, bigger bills, a dumber agent drowning in definitions it doesn't need.
+Every MCP server you connect dumps its **entire tool catalog** into every LLM request. Six servers × twelve tools ≈ **36,000 tokens per request** before your prompt even starts — slower answers, bigger bills, a dumber agent.
 
-**CtxSlim is a proxy that fixes this.** It sits between your client and your servers, exposes only the tools that matter, and compresses the rest — zero API keys, zero cloud calls, zero config rewriting.
+**CtxSlim is a proxy that fixes this.** One entry in your client config; it talks to your *N* servers and exposes only what matters, compressed — zero API keys, zero cloud calls.
 
 ## 📊 Measured savings
 
-Real numbers from the bundled benchmark (`npm run bench`), through actual MCP transports:
+From the bundled benchmark (`npm run bench`), through real MCP transports:
 
-| Setup | Context before | Compressed | Top-24 ranked |
+| Setup | Per request before | Compressed | Top-24 ranked |
 | --- | ---: | ---: | ---: |
 | 2 servers × 8 tools | 8.4k tokens | −17.8% | −17.8% |
 | 4 servers × 10 tools | 20.4k tokens | −17.8% | **−55.2%** |
 | 6 servers × 12 tools | 36.2k tokens | −17.8% | **−74.7%** |
 
-The more servers you stack, the more Slim saves — and real-world servers (GitHub, Notion, browser automation) ship far heavier definitions than these.
+Bigger stacks save more — and production servers (GitHub, Notion, browser automation) ship heavier schemas than these fixtures.
 
 ## ⚡ Quick start
 
@@ -45,7 +45,7 @@ npx -y ctxslim init                          # preview what it found on your mac
 npx -y ctxslim init --client cursor --yes    # wire it in (timestamped backup included)
 ```
 
-Or replace your whole MCP stack with one entry (stdio + HTTP servers both work):
+Or one manual entry (stdio + HTTP servers both work):
 
 ```json
 {
@@ -55,7 +55,7 @@ Or replace your whole MCP stack with one entry (stdio + HTTP servers both work):
 }
 ```
 
-Works with Claude Desktop · Claude Code · Cursor · Windsurf · VS Code · anything speaking MCP. CtxSlim **auto-discovers** your existing servers read-only — or point it explicitly via `--config`, `CTX_SLIM_CONFIG`, or a project-local `ctxslim.json`.
+Works with Claude Desktop · Claude Code · Cursor · Windsurf · VS Code · anything speaking MCP. Servers are auto-discovered read-only — or point explicitly via `--config`, `CTX_SLIM_CONFIG`, or a project-local `ctxslim.json`.
 
 <details>
 <summary><b>Full config reference</b></summary>
@@ -89,13 +89,17 @@ Works with Claude Desktop · Claude Code · Cursor · Windsurf · VS Code · any
 | Key | Meaning |
 | --- | --- |
 | `mode` | `auto` top-K per turn (default) · `manual` allowlist + pins only · `off` pure aggregation |
-| `maxTools` | Cap on exposed tools per turn (default 24) |
-| `include` / `exclude` | Per-server globs, applied at indexing (`*`, `?`); `exclude` wins |
-| `output.maxChars` | Truncate that server's text results (head + tail + marker); structured content untouched; `{}` without `maxChars` is rejected |
-| `images` | Downsample `image` results (`scale` in (0,1] default 0.5, `format` jpeg/png default jpeg, `quality` 1–100 default 70). Needs optional `sharp`; without it, results pass through with a warning — never stripped |
-| `adaptive` | Boost tools you actually call, learned across sessions (default on) |
-| `disclosure` | Stub listings + on-demand schemas (default off, see below) |
-| `pins` / `allowlist` | `server::tool` keys always exposed / servers allowed in `manual` mode |
+| `maxTools` | Exposed-tool cap per turn (default 24) |
+| `descriptionBudget` | Per-description char budget (default 280) |
+| `connectTimeout` | Per-server boot timeout, ms (default 15000) |
+| `stats` | Persist session stats (default true) |
+| `adaptive` | Re-rank by your cross-session usage, persisted locally (default true) |
+| `disclosure` | Stub listings + on-demand schemas (default false — §4) |
+| `pins` | `server::tool` keys always exposed |
+| `allowlist` | Servers permitted in `manual` mode |
+| `include` / `exclude` | Per-server globs (`*`, `?`); `exclude` wins |
+| `output.maxChars` | Truncate that server's text results, head + tail + marker (positive number; `{}` without it is rejected) |
+| `images` | Downsample `image` results — `scale` in (0,1] default 0.5, `format` jpeg/png default jpeg, `quality` 1–100 default 70; needs optional `sharp`, otherwise passthrough with a warning |
 
 </details>
 
@@ -110,10 +114,13 @@ flowchart LR
     style S fill:#16a34a,stroke:#14532d,color:#fff
 ```
 
-1. **Instant startup** (lazy connect): the proxy answers your client immediately and boots upstreams in the background — servers appear as they connect instead of blocking on the slowest one.
-2. **Top-K exposure**: `auto` mode scores every tool (BM25 match against your last search + your cross-session usage + manual pins, minus your globs) and exposes the best 24 with compressed schemas (boilerplate stripped, descriptions budgeted). With `slim.disclosure: true` it goes further: name + one-liner stubs (~40 tokens each), full schemas fetched on demand.
-3. **Transparent routing**: your agent calls any exposed — or hidden — tool by name; the proxy routes it to the right server. Results pass through your optional squeezes (`output.maxChars` truncation, `images` downsampling), then land in context. Every call is metered (sizes + hashes, never content).
-4. **The learning loop**: calls feed `usage.json`, so ranking improves the more you work. `slim_stats` shows this session, `stats` the lifetime, `audit` the dollars per task, and `doctor --tune` turns it all into config suggestions.
+**Startup.** Answers your client instantly and boots upstreams in the background — tools arrive via `list_changed` as each connects, so one slow server never blocks your session.
+
+**The list.** Every `tools/list` scores each tool — BM25 match against your last search, your cross-session usage, manual pins, minus your globs — and exposes the top-K with compressed schemas (boilerplate stripped, descriptions budgeted, dead `$defs` dropped).
+
+**The call.** Your agent calls any exposed — or hidden — tool by name; the proxy routes it to the right server. Results pass through your configured squeezes, then land in context. Every attempt is metered (sizes + arg hashes, never content).
+
+**The loop.** Calls feed local usage data, so ranking improves the more you work. `slim_stats` reports this session, `stats` the lifetime, `audit` the dollars per task, `doctor --tune` the config fixes.
 
 | Meta tool | What it does |
 | --- | --- |
@@ -121,11 +128,11 @@ flowchart LR
 | `describe_tools` | Full schemas for tools by exact name (batch-friendly) |
 | `enable_tools` | Pin tools for the session so they're never swapped out |
 | `list_servers` | Connection status and tool counts |
-| `slim_stats` | Live tokens-saved report for this session |
+| `slim_stats` | Live tokens-saved report, this session |
 
 ## 💸 Spend audit
 
-Every routed call is metered to `~/.ctxslim/audit.jsonl`. `ctxslim audit` turns it into **per-task dollar spend** — top tasks and tools, duplicate-call and error waste called out separately:
+`ctxslim audit` turns the call meter into **per-task dollar spend**: top tasks and tools, duplicate-call and error waste called out, definitions shown per request as full + prompt-cached cost.
 
 ```
 tasks               12
@@ -135,17 +142,19 @@ definitions/request ~9.2k tokens  claude-sonnet-5 $0.0184/$0.0018 (full/cached)
 duplicate waste     $0.0021 (claude-sonnet-5)
 ```
 
-`--gap` re-slices tasks · `--model` headlines a family · `--prices` overrides rates · `--json` for scripting. Tool outputs are priced as input tokens; definitions show full + prompt-cached cost. Prices indicative as of 2026-09-08 across 10 real models (`claude-fable-5-1` … `gemini-3.8-flash`).
+`--gap` re-slices tasks · `--model` headlines a family · `--prices` overrides rates · `--json` for scripting. Tool outputs are priced as input tokens. Rates cover 10 real models (`claude-fable-5-1` … `gemini-3.8-flash`), indicative as of 2026-09-08.
 
-## 🔍 Progressive disclosure
-
-For huge catalogs, even compressed schemas add up. Opt in:
+## 🔍 Progressive disclosure (opt-in)
 
 ```json
 { "slim": { "disclosure": true } }
 ```
 
-`list_tools` then returns **stubs** — name, `{ "type": "object" }`, and a 120-character description — while `search_tools` / `describe_tools` fetch full schemas on demand and stub-listed tools stay directly callable. Off by default; meta tools always render full.
+`list_tools` returns **stubs** — name, `{ "type": "object" }`, a 120-character description — while `search_tools` / `describe_tools` fetch full schemas on demand and stub-listed tools stay directly callable. Meta tools always render full.
+
+## 🖼 Image downsampling (opt-in)
+
+Set per-server `images` (see config reference) and `image` results are resized in-process. No `sharp` installed, no problem: results pass through with a stderr note. Nothing is ever stripped — transform or passthrough, no third option.
 
 ## 🎛 Auto-tune
 
@@ -153,7 +162,7 @@ For huge catalogs, even compressed schemas add up. Opt in:
 ctxslim doctor --tune [--json]
 ```
 
-Reads your real usage, history, and meter, then suggests pins, `maxTools`, exclusions, output caps, and disclosure. **Suggest-only — nothing is ever written.**
+Five deterministic rules over your real data — pins at ≥5 calls, `maxTools` from 90% coverage (either direction), zero-call servers as exclusion candidates, `output.maxChars` where average results exceed 8000 chars, disclosure past 6000 defs/request. **Suggest-only — nothing is ever written.**
 
 ## 🛠 CLI
 
@@ -162,8 +171,8 @@ ctxslim                       start the proxy
 ctxslim init                  wire into a client config (--client, --yes, backup included)
 ctxslim --config <path>       use a specific config
 ctxslim --mode <mode>         auto | manual | off
-ctxslim --max-tools <n>       override top-K (default 24)
-ctxslim --no-stats            don't persist session stats
+ctxslim --max-tools <n>       override top-K
+ctxslim --no-stats            no stats, usage, or audit files
 ctxslim --quiet               minimal logging
 ctxslim stats [--json]        lifetime savings
 ctxslim audit [--gap] [--model] [--prices] [--json]
@@ -174,25 +183,22 @@ ctxslim doctor [--tune] [--json]
 
 ## 🔒 Privacy
 
-**100% local.** No API keys, no telemetry, no network calls except to your own MCP servers. Stats, usage, and audit files stay on your disk and die with `--no-stats`. The audit meter stores sizes and hashes only — but hashes identify repeats rather than hiding low-entropy values, so treat `audit.jsonl` as sensitive. Images are transformed in-process and never leave the machine.
+**100% local.** No API keys, no telemetry, no network calls except to your own MCP servers. Stats, usage, and audit files live under `~/.ctxslim` and all die with `--no-stats`. The meter stores sizes and SHA-1 hashes only — but hashes identify repeats rather than hiding low-entropy values, so treat `audit.jsonl` as sensitive. Images are transformed in-process and never leave the machine.
 
 ## ❓ FAQ
 
 **Does my agent still find hidden tools?**
-Yes — `search_tools` returns full schemas for matches, and even a direct call to a known-but-hidden tool by name gets routed. Nothing is ever hard-blocked.
+Yes — search returns full schemas for matches, and even a direct call to a known-but-hidden tool by name gets routed. Nothing is ever hard-blocked.
 
 **Why not just install fewer servers?**
 Because you installed them for a reason. The problem isn't having tools — it's paying for all of them in every single prompt.
-
-**Does it work with HTTP servers?**
-Yes — `url` entries proxy via Streamable HTTP alongside stdio.
 
 **Where are the tests?**
 131 of them (`npm test`) — compressor, ranking + adaptive scoring, globs, truncation, disclosure, images, lazy connect, persistence, audit/pricing/tune, and a full integration suite over real MCP transports.
 
 ## 🤝 Contributing
 
-Genuinely welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). The codebase is small, strict, and comment-free on purpose; it's a nice one to read. **Say hi:** [open an issue](https://github.com/v01dst/ctxslim/issues/new) with your use case.
+Genuinely welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Small, strict, comment-free codebase; a nice one to read. **Say hi:** [open an issue](https://github.com/v01dst/ctxslim/issues/new) with your use case.
 
 ## ⭐ Star history
 
