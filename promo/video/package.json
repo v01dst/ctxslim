@@ -1,0 +1,22 @@
+{
+  "name": "ctxslim-promo-video",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Promo video for ctxslim — Put your MCP servers on a diet.",
+  "scripts": {
+    "studio": "remotion studio",
+    "render": "remotion render CtxSlimPromo out/ctxslim-promo.mp4",
+    "render-vertical": "remotion render CtxSlimPromoVertical out/ctxslim-promo-vertical.mp4",
+    "still": "remotion still CtxSlimPromo out/frame.png --frame=500"
+  },
+  "dependencies": {
+    "@remotion/cli": "^4.0.522",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "remotion": "^4.0.522"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "typescript": "5.7"
+  }
+}
