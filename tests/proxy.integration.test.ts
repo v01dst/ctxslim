@@ -102,6 +102,23 @@ describe("proxy integration", () => {
     expect(JSON.stringify(betaResult)).toContain("beta handled beta_tool_2");
   });
 
+  it("prefixes tool names that collide with meta-tool namespaces", async () => {
+    const configFile = makeConfigFile({
+      alpha: spawnEntry("search_tools"),
+      beta: spawnEntry("slim__search_tools"),
+    });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile);
+    activeServers.push(slimServer);
+
+    const { tools } = await client.listTools();
+    const names = tools.map((tool) => tool.name);
+    expect(names).toContain("alpha__search_tools");
+    expect(names).toContain("beta__slim__search_tools");
+    expect(names).toContain("slim__search_tools");
+    expect(names).not.toContain("search_tools");
+  });
+
   it("prefixes colliding tool names", async () => {
     const configFile = makeConfigFile({ one: spawnEntry("same"), two: spawnEntry("same") });
     cleanup.push(configFile);
