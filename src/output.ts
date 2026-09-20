@@ -1,6 +1,17 @@
 const marker = (omitted: number): string =>
   `\n\n[ctxslim: truncated ${omitted} chars — raise output.maxChars in ctxslim.json to see more]`;
 
+const compactJsonText = (text: string): string => {
+  const trimmed = text.trim();
+  if (!trimmed || (trimmed[0] !== "{" && trimmed[0] !== "[")) return text;
+  try {
+    const parsed: unknown = JSON.parse(trimmed);
+    return JSON.stringify(parsed);
+  } catch {
+    return text;
+  }
+};
+
 export const truncateOutput = (text: string, maxChars: number): string => {
   if (maxChars <= 0 || text.length <= maxChars) return text;
   if (maxChars <= 3) return text.slice(0, maxChars);
@@ -24,9 +35,15 @@ export const compressToolResult = (result: unknown, maxChars: number): { result:
       const obj = item as Record<string, unknown>;
       const next: Record<string, unknown> = {};
       for (const [key, child] of Object.entries(obj)) {
-        if (key === "text" && obj.type === "text" && typeof child === "string" && child.length > maxChars) {
-          truncated = true;
-          next[key] = truncateOutput(child, maxChars);
+        if (key === "text" && obj.type === "text" && typeof child === "string") {
+          const compacted = compactJsonText(child);
+          const candidate = compacted.length < child.length ? compacted : child;
+          if (candidate.length > maxChars) {
+            truncated = true;
+            next[key] = truncateOutput(candidate, maxChars);
+          } else {
+            next[key] = candidate;
+          }
         } else if (key === "content" && Array.isArray(child)) {
           next[key] = processItems(child);
         } else {
