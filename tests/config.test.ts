@@ -84,6 +84,15 @@ describe("normalizeConfig", () => {
       const config = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { contextBudget: 4200 } }, "test");
       expect(config.slim?.contextBudget).toBe(4200);
     });
+
+    it("rejects invalid slim.contextBudget", () => {
+      expect(() => normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { contextBudget: 0 } }, "test")).toThrow(/contextBudget/);
+      expect(() => normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { contextBudget: Number.NaN } }, "test")).toThrow(/contextBudget/);
+    });
+
+    it("rejects non-integer slim.maxTools", () => {
+      expect(() => normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { maxTools: 2.5 } }, "test")).toThrow(/maxTools/);
+    });
   });
 });
 
