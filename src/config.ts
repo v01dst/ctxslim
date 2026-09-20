@@ -96,6 +96,7 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
   const slim: SlimConfig = {
     ...(slimRaw.mode !== undefined ? { mode: slimRaw.mode as SlimMode } : {}),
     ...(slimRaw.maxTools !== undefined ? { maxTools: Number(slimRaw.maxTools) } : {}),
+    ...(slimRaw.contextBudget !== undefined ? { contextBudget: Number(slimRaw.contextBudget) } : {}),
     ...(Array.isArray(slimRaw.pins) ? { pins: slimRaw.pins.map(String) } : {}),
     ...(Array.isArray(slimRaw.allowlist) ? { allowlist: slimRaw.allowlist.map(String) } : {}),
     ...(slimRaw.descriptionBudget !== undefined ? { descriptionBudget: Number(slimRaw.descriptionBudget) } : {}),
