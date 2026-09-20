@@ -308,6 +308,10 @@ export class ContextSlimServer {
     return compressTool(tool, this.descriptionBudget).tool;
   }
 
+  private toolTokenCost(tool: ToolDefinition): number {
+    return compressTool(tool, Number.MAX_SAFE_INTEGER).tokensAfter;
+  }
+
   private scoreKey(key: string, scores: Map<string, number>, now: number): number {
     const base = scores.get(key) ?? 0;
     const pinned = this.pinned.has(key) ? 1000 : 0;
