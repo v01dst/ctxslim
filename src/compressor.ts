@@ -104,7 +104,7 @@ export type CompressionResult = {
 const compressionCache = new WeakMap<ToolDefinition, Map<string, CompressionResult>>();
 
 export const toolTokenCount = (tool: ToolDefinition): number =>
-  estimateTokens(JSON.stringify({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema }));
+  estimateTokens(JSON.stringify(tool));
 
 export const compressTool = (
   tool: ToolDefinition,
