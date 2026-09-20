@@ -60,6 +60,27 @@ describe("compressTool", () => {
     expect(tool.inputSchema.$defs).toBeUndefined();
   });
 
+  it("preserves semantic false, null, empty-string, and const values", () => {
+    const tool: ToolDefinition = {
+      name: "strict_schema",
+      inputSchema: {
+        type: "object",
+        properties: {
+          mode: { type: "string", const: "exact", default: "" },
+          nullable: { type: ["string", "null"], default: null },
+        },
+        additionalProperties: false,
+      },
+    };
+    const { tool: compressed } = compressTool(tool, 280);
+    const schema = compressed.inputSchema as Record<string, unknown>;
+    expect(schema.additionalProperties).toBe(false);
+    const properties = schema.properties as Record<string, Record<string, unknown>>;
+    expect(properties.mode.const).toBe("exact");
+    expect(properties.mode.default).toBe("");
+    expect(properties.nullable.default).toBeNull();
+  });
+
   it("keeps required properties and structure", () => {
     const { tool } = compressTool(fatTool(), 280);
     expect(tool.inputSchema.required).toEqual(["sql"]);
