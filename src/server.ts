@@ -208,14 +208,9 @@ export class ContextSlimServer {
   }
 
   private matchTemplate(uri: string): string | undefined {
-    const escapeRegex = (value: string): string => value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\  private matchTemplate(uri: string): string | undefined {
-    for (const [template, server] of this.templateRoutes) {
-      const regex = new RegExp("^" + template.replace(/\{[^}]+\}/g, "[^/]+") + "$");
-      if (regex.test(uri)) return server;
-    }
-    return undefined;
-  }
-");
+    const regexSpecials = "\\.^$*+?()[]{}|/";
+    const escapeRegex = (value: string): string =>
+      [...value].map((char) => (regexSpecials.includes(char) ? "\\" + char : char)).join("");
     for (const [template, server] of this.templateRoutes) {
       const pattern = template
         .split(/(\{[^}]+\})/g)
