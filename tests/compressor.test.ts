@@ -48,6 +48,25 @@ describe("estimateTokens", () => {
 });
 
 describe("compressTool", () => {
+  it("preserves MCP tool annotations", () => {
+    const tool = {
+      ...fatTool(),
+      annotations: {
+        readOnlyHint: true,
+        destructiveHint: false,
+        openWorldHint: true,
+      },
+    };
+    const { tool: compressed } = compressTool(tool, 280);
+    expect(compressed.annotations).toEqual(tool.annotations);
+  });
+
+  it("caches repeated compression for the same budget", () => {
+    const tool = fatTool();
+    expect(compressTool(tool, 280)).toBe(compressTool(tool, 280));
+    expect(compressTool(tool, 40)).not.toBe(compressTool(tool, 280));
+  });
+
   it("reduces token count", () => {
     const result = compressTool(fatTool(), 280);
     expect(result.tokensAfter).toBeLessThan(result.tokensBefore);
