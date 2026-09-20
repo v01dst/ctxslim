@@ -101,6 +101,8 @@ export type CompressionResult = {
   tokensAfter: number;
 };
 
+const compressionCache = new WeakMap<ToolDefinition, Map<string, CompressionResult>>();
+
 export const toolTokenCount = (tool: ToolDefinition): number =>
   estimateTokens(JSON.stringify({ name: tool.name, description: tool.description, inputSchema: tool.inputSchema }));
 
@@ -109,14 +111,26 @@ export const compressTool = (
   descriptionBudget: number,
   maxDepth = 6
 ): CompressionResult => {
+  const cacheKey = `${descriptionBudget}:${maxDepth}`;
+  const cached = compressionCache.get(tool)?.get(cacheKey);
+  if (cached) return cached;
+
   const tokensBefore = toolTokenCount(tool);
   const inputSchema = compressNode(tool.inputSchema, 0, maxDepth) as Record<string, unknown>;
   const slimmed: ToolDefinition = {
+    ...tool,
     name: tool.name,
     description: tool.description ? truncateWords(tool.description.trim(), descriptionBudget) : undefined,
     inputSchema: (inputSchema ?? { type: "object" }) as Record<string, unknown>,
   };
   if (!slimmed.description) delete slimmed.description;
   const tokensAfter = toolTokenCount(slimmed);
-  return { tool: slimmed, tokensBefore, tokensAfter };
+  const result = { tool: slimmed, tokensBefore, tokensAfter };
+  let byKey = compressionCache.get(tool);
+  if (!byKey) {
+    byKey = new Map();
+    compressionCache.set(tool, byKey);
+  }
+  byKey.set(cacheKey, result);
+  return result;
 };
