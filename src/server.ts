@@ -107,6 +107,10 @@ export class ContextSlimServer {
     return this.config.slim?.maxTools && this.config.slim.maxTools > 0 ? this.config.slim.maxTools : DEFAULT_MAX_TOOLS;
   }
 
+  private get contextBudget(): number {
+    return this.config.slim?.contextBudget && this.config.slim.contextBudget > 0 ? this.config.slim.contextBudget : 6000;
+  }
+
   private get descriptionBudget(): number {
     return this.config.slim?.descriptionBudget && this.config.slim.descriptionBudget > 0
       ? this.config.slim.descriptionBudget
@@ -381,7 +385,19 @@ export class ContextSlimServer {
       selected = readyTools.filter((resolvedTool) => this.pinned.has(resolvedTool.key) || !allowlist || allowlist.includes(resolvedTool.server));
     } else {
       const ranked = [...readyTools].sort((a, b) => this.scoreKey(b.key, searchScores, now) - this.scoreKey(a.key, searchScores, now));
-      selected = ranked.slice(0, this.maxTools);
+      const compressed = ranked.map((resolvedTool) => ({ resolvedTool, tool: this.compressedOf(resolvedTool.tool) }));
+      const chosen: typeof compressed = [];
+      let budgetUsed = 0;
+      for (const candidate of compressed) {
+        if (chosen.length >= this.maxTools) break;
+        const cost = this.toolTokenCost(candidate.tool);
+        const pinned = this.pinned.has(candidate.resolvedTool.key);
+        if (pinned || chosen.length === 0 || budgetUsed + cost <= this.contextBudget) {
+          chosen.push(candidate);
+          budgetUsed += cost;
+        }
+      }
+      selected = chosen.map((item) => item.resolvedTool);
     }
     const compress = this.mode !== "off";
     const exposed = selected.map((resolvedTool) => {
