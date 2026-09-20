@@ -26,6 +26,18 @@ describe("truncateOutput", () => {
   });
 });
 
+describe("truncateOutput budget", () => {
+  it("never exceeds maxChars when the marker is longer than the budget", () => {
+    const result = truncateOutput("x".repeat(1000), 20);
+    expect(result.length).toBeLessThanOrEqual(20);
+  });
+
+  it("handles tiny budgets without producing a negative slice", () => {
+    expect(truncateOutput("abcdef", 1)).toBe("a");
+    expect(truncateOutput("abcdef", 3)).toBe("abc");
+  });
+});
+
 describe("compressToolResult", () => {
   it("truncates long strings inside content arrays", () => {
     const result = { content: [{ type: "text", text: "y".repeat(9000) }] };
