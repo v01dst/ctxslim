@@ -80,10 +80,10 @@ describe("normalizeConfig", () => {
       const off = normalizeConfig({ mcpServers: { alpha: { command: "node" } } }, "test");
       expect(off.slim?.disclosure).toBeUndefined();
     });
-  it("parses slim.contextBudget", () => {
-    const config = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { contextBudget: 4200 } }, "test");
-    expect(config.slim?.contextBudget).toBe(4200);
-  });
+    it("parses slim.contextBudget", () => {
+      const config = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { contextBudget: 4200 } }, "test");
+      expect(config.slim?.contextBudget).toBe(4200);
+    });
   });
 });
 
@@ -165,8 +165,4 @@ it("rejects invalid images options", () => {
   expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { scale: 2 } } } }, "test")).toThrow(/images\.scale/);
   expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { format: "gif" } } } }, "test")).toThrow(/images\.format/);
   expect(() => normalizeConfig({ mcpServers: { a: { command: "node", images: { quality: 101 } } } }, "test")).toThrow(/images\.quality/);
-it("parses slim.contextBudget", () => {
-  const config = normalizeConfig({ mcpServers: { alpha: { command: "node" } }, slim: { contextBudget: 4200 } }, "test");
-  expect(config.slim?.contextBudget).toBe(4200);
-});
 });
