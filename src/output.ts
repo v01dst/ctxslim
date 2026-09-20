@@ -3,12 +3,14 @@ const marker = (omitted: number): string =>
 
 export const truncateOutput = (text: string, maxChars: number): string => {
   if (maxChars <= 0 || text.length <= maxChars) return text;
-  const note = marker(text.length - maxChars);
+  if (maxChars <= 3) return text.slice(0, maxChars);
+  const omitted = Math.max(0, text.length - maxChars);
+  const fullNote = marker(omitted);
+  const note = fullNote.length < maxChars ? fullNote : `… [${omitted} chars omitted]`;
   const body = maxChars - note.length;
-  if (body < 200) {
-    return `${text.slice(0, maxChars)}${note}`;
-  }
-  const head = Math.floor(body * 0.7);
+  if (body <= 0) return text.slice(0, maxChars);
+  if (body < 40) return `${text.slice(0, body)}${note}`.slice(0, maxChars);
+  const head = Math.ceil(body * 0.7);
   const tail = body - head;
   return `${text.slice(0, head)}${note}${text.slice(text.length - tail)}`;
 };
