@@ -4,7 +4,7 @@ export const tokensForChars = (chars: number): number => Math.ceil(chars / 4);
 
 export const estimateTokens = (text: string): number => tokensForChars(text.length);
 
-const DROP_KEYS = new Set(["$schema", "$id", "title", "examples", "$comment", "const"]);
+const DROP_KEYS = new Set(["$schema", "$id", "title", "examples", "$comment"]);
 
 const RECURSIVE_KEYS = ["properties", "items", "additionalProperties", "anyOf", "oneOf", "allOf", "prefixItems"];
 
@@ -83,8 +83,8 @@ const compressNode = (node: unknown, depth: number, maxDepth: number): unknown =
       if (compressed !== undefined && !isEmptyObject(compressed)) result[key] = compressed;
       continue;
     }
-    if (value === null || value === undefined || value === false || value === "") continue;
-    if (typeof value === "object" && !Array.isArray(value) && isEmptyObject(value)) continue;
+    if (value === undefined) continue;
+    if (typeof value === "object" && value !== null && !Array.isArray(value) && isEmptyObject(value)) continue;
     if (Array.isArray(value) && value.length === 0) continue;
     result[key] = value;
   }
