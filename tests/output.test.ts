@@ -82,4 +82,13 @@ describe("compressToolResult", () => {
     expect(out.structuredContent.data).toBe(longStructured);
     expect(out._meta.extra).toBe(longStructured);
   });
+  it("minifies JSON text results without changing their data", () => {
+    const pretty = JSON.stringify({ items: Array.from({ length: 20 }, (_, i) => ({ id: i, name: "repeated-value" })) }, null, 2);
+    const result = { content: [{ type: "text", text: pretty }] };
+    const { result: compressed, truncated } = compressToolResult(result, 10000);
+    const text = (compressed as { content: { text: string }[] }).content[0].text;
+    expect(truncated).toBe(false);
+    expect(JSON.parse(text)).toEqual(JSON.parse(pretty));
+    expect(text.length).toBeLessThan(pretty.length);
+  });
 });
