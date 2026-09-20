@@ -38,12 +38,13 @@ Measured through real MCP transports (`npm run bench`). Bigger stacks save more.
 
 ## Features
 
-- **Top-K exposure** — BM25 ranking + your usage history pick the ~24 tools that matter per turn; the rest stay one `search_tools` away, never blocked
+- **Adaptive context budget** — ranked tools are admitted by token cost, not just count; a default 6k-token budget keeps expensive schemas from crowding the prompt
+- **Top-K exposure** — BM25 ranking + your usage history pick the tools that matter per turn; the rest stay one `search_tools` away, never blocked
 - **Schema compression** — boilerplate stripped, descriptions budgeted, dead `$defs` dropped
 - **Adaptive ranking** — tools you actually call get a boost, learned across sessions
 - **Progressive disclosure** — opt-in stub listings (~40 tokens/tool) with on-demand full schemas
 - **Lazy connect** — instant startup; upstream servers boot in the background
-- **Output diet** — truncate giant text results, downsample screenshots (opt-in, per server)
+- **Output diet** — safely minify JSON text results, truncate giant text results, and downsample screenshots (opt-in, per server)
 - **Spend audit** — every call metered; `ctxslim audit` prices it per task in dollars
 - **Auto-tune** — `ctxslim doctor --tune` reads your real usage and suggests config fixes (never writes)
 - **100% local** — no API keys, no telemetry, no cloud. Works with stdio and Streamable HTTP servers
@@ -61,7 +62,7 @@ flowchart LR
 ```
 
 1. **Startup** — Slim answers your client instantly, boots your servers in the background, and announces each as it lands.
-2. **Listing** — every `tools/list` scores all tools (search relevance + usage + pins − globs) and exposes the top-K, schemas compressed.
+2. **Listing** — every `tools/list` scores all tools (search relevance + usage + pins − globs), then admits the highest-value schemas until the adaptive token budget is full.
 3. **Discovery** — `search_tools` and `describe_tools` pull full schemas on demand; hidden tools stay directly callable. Nothing is hard-blocked, ever.
 4. **Calls** — routed transparently to the right server; results pass through your squeezes (`output.maxChars`, `images`) before entering context.
 5. **Learning** — every call feeds local stats; `slim_stats` shows the session, `stats` the lifetime, `audit` the money, `doctor --tune` the next config fix.
@@ -83,7 +84,8 @@ flowchart LR
   },
   "slim": {
     "mode": "auto",              // auto | manual (allowlist + pins) | off (pure aggregation)
-    "maxTools": 24,              // exposed-tool cap per turn
+    "maxTools": 24,              // hard cap on exposed tools
+    "contextBudget": 6000,        // adaptive token budget for exposed tool definitions
     "adaptive": true,            // learn from usage across sessions
     "disclosure": false,         // stub listings + on-demand schemas
     "pins": ["playwright::browser_navigate"],
