@@ -208,9 +208,20 @@ export class ContextSlimServer {
   }
 
   private matchTemplate(uri: string): string | undefined {
+    const escapeRegex = (value: string): string => value.replace(/[-/\\^$*+?.()|[\]{}]/g, "\\  private matchTemplate(uri: string): string | undefined {
     for (const [template, server] of this.templateRoutes) {
       const regex = new RegExp("^" + template.replace(/\{[^}]+\}/g, "[^/]+") + "$");
       if (regex.test(uri)) return server;
+    }
+    return undefined;
+  }
+");
+    for (const [template, server] of this.templateRoutes) {
+      const pattern = template
+        .split(/(\{[^}]+\})/g)
+        .map((part) => /^\{[^}]+\}$/.test(part) ? "[^/]+" : escapeRegex(part))
+        .join("");
+      if (new RegExp("^" + pattern + "$").test(uri)) return server;
     }
     return undefined;
   }
@@ -246,7 +257,14 @@ export class ContextSlimServer {
         if (typeof template.uriTemplate === "string") this.templateRoutes.set(template.uriTemplate, serverName);
       }
     }
-    const needsPrefix = (name: string): boolean => (toolNames.get(name) ?? 0) > 1;
+    const metaNames = new Set(META_TOOLS.map((tool) => tool.name));
+    this.metaPrefix = [...toolNames.keys()].some((name) => metaNames.has(name)) ? "slim__" : "";
+    const reservedExposedNames = new Set([
+      ...metaNames,
+      ...META_TOOLS.map((tool) => `${this.metaPrefix}${tool.name}`),
+    ]);
+    const needsPrefix = (name: string): boolean =>
+      (toolNames.get(name) ?? 0) > 1 || reservedExposedNames.has(name);
     for (const [serverName, upstream] of this.upstreams) {
       if (upstream.status !== "ready") continue;
       for (const tool of upstream.tools) {
@@ -276,8 +294,6 @@ export class ContextSlimServer {
       this.resolved.set(entry.key, resolvedTool);
       this.routeByExposedName.set(exposedName, entry.key);
     }
-    const metaNames = new Set(META_TOOLS.map((tool) => tool.name));
-    this.metaPrefix = [...toolNames.keys()].some((name) => metaNames.has(name)) ? "slim__" : "";
     this.tokensBefore = entries.reduce((sum, entry) => sum + this.tokenCountOf(entry.tool), 0);
     for (const pin of this.config.slim?.pins ?? []) {
       const key = this.routeByExposedName.get(pin) ?? (this.resolved.has(pin) ? pin : undefined);
