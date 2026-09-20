@@ -119,6 +119,20 @@ describe("proxy integration", () => {
     expect(names).not.toContain("search_tools");
   });
 
+  it("escapes regex characters in resource templates", async () => {
+    const configFile = makeConfigFile({ alpha: spawnEntry("alpha") });
+    cleanup.push(configFile);
+    const { slimServer, client } = await startProxy(configFile);
+    activeServers.push(slimServer);
+
+    const routes = (slimServer as unknown as { templateRoutes: Map<string, string> }).templateRoutes;
+    const matcher = (slimServer as unknown as { matchTemplate: (uri: string) => string | undefined }).matchTemplate.bind(slimServer);
+    routes.set("file://docs.v1/{id}", "alpha");
+
+    expect(matcher("file://docs.v1/readme")).toBe("alpha");
+    expect(matcher("file://docsXv1/readme")).toBeUndefined();
+  });
+
   it("prefixes colliding tool names", async () => {
     const configFile = makeConfigFile({ one: spawnEntry("same"), two: spawnEntry("same") });
     cleanup.push(configFile);
