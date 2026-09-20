@@ -24,6 +24,14 @@ describe("truncateOutput", () => {
   it("handles maxChars larger than text", () => {
     expect(truncateOutput("short", 5000)).toBe("short");
   });
+  it("minifies JSON text results without changing their data", () => {
+    const result = { content: [{ type: "text", text: JSON.stringify({ items: Array.from({ length: 20 }, (_, i) => ({ id: i, name: "repeated-value" })) }, null, 2) }] };
+    const { result: compressed, truncated } = compressToolResult(result, 10000);
+    const text = (compressed as { content: { text: string }[] }).content[0].text;
+    expect(truncated).toBe(false);
+    expect(JSON.parse(text)).toEqual(JSON.parse(result.content[0].text));
+    expect(text.length).toBeLessThan(result.content[0].text.length);
+  });
 });
 
 describe("truncateOutput budget", () => {
