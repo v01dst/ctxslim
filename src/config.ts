@@ -93,6 +93,12 @@ export const normalizeConfig = (raw: unknown, source: string): ContextSlimConfig
   if (slimRaw.mode !== undefined && !modes.has(slimRaw.mode as string)) {
     throw new Error(`slim.mode must be one of: auto, manual, off`);
   }
+  if (slimRaw.contextBudget !== undefined && (typeof slimRaw.contextBudget !== "number" || !Number.isFinite(slimRaw.contextBudget) || slimRaw.contextBudget <= 0)) {
+    throw new Error(`slim.contextBudget must be a positive finite number`);
+  }
+  if (slimRaw.maxTools !== undefined && (typeof slimRaw.maxTools !== "number" || !Number.isInteger(slimRaw.maxTools) || slimRaw.maxTools <= 0)) {
+    throw new Error(`slim.maxTools must be a positive integer`);
+  }
   const slim: SlimConfig = {
     ...(slimRaw.mode !== undefined ? { mode: slimRaw.mode as SlimMode } : {}),
     ...(slimRaw.maxTools !== undefined ? { maxTools: Number(slimRaw.maxTools) } : {}),
