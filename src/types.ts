@@ -24,6 +24,7 @@ export type SlimMode = "auto" | "manual" | "off";
 export type SlimConfig = {
   mode?: SlimMode;
   maxTools?: number;
+  contextBudget?: number;
   pins?: string[];
   allowlist?: string[];
   descriptionBudget?: number;
