@@ -473,8 +473,8 @@ export class ContextSlimServer {
     try {
       const reqChars = safeChars(args ?? {});
       const result = await upstream.callTool(resolvedTool.originalName, args);
-      const maxChars = this.config.mcpServers[resolvedTool.server]?.output?.maxChars;
-      const compressed = maxChars ? compressToolResult(result, maxChars).result : result;
+      const maxChars = this.config.mcpServers[resolvedTool.server]?.output?.maxChars ?? Number.MAX_SAFE_INTEGER;
+      const compressed = compressToolResult(result, maxChars).result;
       const finalResult = await this.maybeDownsample(resolvedTool.server, compressed);
       this.recordAudit({
         server: resolvedTool.server,
