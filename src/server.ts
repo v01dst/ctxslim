@@ -22,7 +22,7 @@ import { hashArgs } from "./audit.js";
 import { DEFAULT_DESCRIPTION_BUDGET, DEFAULT_MAX_TOOLS } from "./types.js";
 import type { ContextSlimConfig, ServerEntry, SlimMode, ToolDefinition } from "./types.js";
 import { META_TOOLS, formatSearchResults, formatServerList } from "./meta.js";
-import { ToolIndex, adaptiveScore } from "./ranker.js";
+import { ToolIndex, adaptiveScore, affinityScore } from "./ranker.js";
 import type { UsageRecord } from "./ranker.js";
 import { appendAuditLine, loadUsageMap, saveSessionStats, saveUsageMap } from "./config.js";
 import type { SessionStats } from "./config.js";
@@ -53,6 +53,8 @@ export class ContextSlimServer {
   private readonly routeByExposedName = new Map<string, string>();
   private readonly usage = new Map<string, UsageRecord>();
   private readonly calledKeys = new Set<string>();
+  private readonly toolAffinity = new Map<string, Map<string, number>>();
+  private lastToolKey: string | null = null;
   private readonly pinned = new Set<string>();
   private readonly promptRoutes = new Map<string, { server: string; name: string }>();
   private readonly resourceRoutes = new Map<string, string>();
