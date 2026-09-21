@@ -38,7 +38,9 @@ Measured through real MCP transports (`npm run bench`). Bigger stacks save more.
 
 ## Features
 
-- **Adaptive context budget** — ranked tools are admitted by token cost, not just count; a default 6k-token budget keeps expensive schemas from crowding the prompt
+- **Adaptive context budget** — ranked tools are admitted by exact token cost, not just count; the BudgetGuard enforces a hard ceiling so an oversized tool cannot silently blow the budget
+- **Cost-exact compression** — admission cost is calculated from the exact compressed representation that will be exposed, eliminating estimate/exposure drift
+- **Predictive tool affinity** — recent tool sequences create a local affinity graph, so tools commonly used after the current tool receive a bounded routing boost
 - **Top-K exposure** — BM25 ranking + your usage history pick the tools that matter per turn; the rest stay one `search_tools` away, never blocked
 - **Schema compression** — boilerplate stripped, descriptions budgeted, dead `$defs` dropped
 - **Adaptive ranking** — tools you actually call get a boost, learned across sessions
@@ -62,7 +64,7 @@ flowchart LR
 ```
 
 1. **Startup** — Slim answers your client instantly, boots your servers in the background, and announces each as it lands.
-2. **Listing** — every `tools/list` scores all tools (search relevance + usage + pins − globs), then admits the highest-value schemas until the adaptive token budget is full.
+2. **Listing** — every `tools/list` scores all tools (search relevance + usage + local tool affinity + pins − globs), compresses them once, then admits the highest-value representations through a hard token budget. Oversized candidates are skipped instead of overflowing the budget.
 3. **Discovery** — `search_tools` and `describe_tools` pull full schemas on demand; hidden tools stay directly callable. Nothing is hard-blocked, ever.
 4. **Calls** — routed transparently to the right server; results pass through your squeezes (`output.maxChars`, `images`) before entering context.
 5. **Learning** — every call feeds local stats; `slim_stats` shows the session, `stats` the lifetime, `audit` the money, `doctor --tune` the next config fix.
@@ -134,6 +136,38 @@ duplicate waste     $0.0021 (claude-sonnet-5)
 Tool outputs are priced as input tokens; definitions show full + prompt-cached cost. Rates are indicative (as of 2026-09-08) for `claude-fable-5-1`, `claude-opus-5`, `claude-sonnet-5`, `claude-haiku-4-5`, `gpt-6-astra`, `gpt-5.6-sol/terra/luna`, `gemini-3.1-pro`, `gemini-3.8-flash` — override anytime with `--prices`.
 
 </details>
+
+## Context engine architecture
+
+CtxSlim treats context as a constrained resource rather than a pile of JSON.
+
+```text
+MCP servers
+    │
+    ▼
+Context Router ── relevance + usage + tool affinity
+    │
+    ▼
+Tool Optimizer ── schema compression + metadata preservation
+    │
+    ▼
+BudgetGuard ──── exact admission cost + hard ceiling
+    │
+    ▼
+MCP client context
+    │
+    ▼
+Result Optimizer ── JSON compaction + truncation + images
+```
+
+### Experimental techniques
+
+- **BudgetGuard**: one deterministic admission controller owns the context ceiling. Pinned tools no longer bypass the ceiling by accident.
+- **Cost-Exact Compression**: a candidate is compressed once and its actual serialized representation is used for admission accounting.
+- **Predictive Tool Affinity**: successful tool sequences build a bounded in-memory transition graph. If browser_navigate → browser_click is common in a session, the second tool receives a small routing boost on the next listing.
+- **Progressive Discovery**: tools that do not fit remain callable and discoverable through `search_tools`, avoiding the classic top-K dead end.
+
+The design goal is not merely a high percentage reduction. It is **bounded context growth**: adding MCP servers should increase discovery space without forcing the full catalog into every request.
 
 ## FAQ
 
