@@ -135,6 +135,26 @@ Tool outputs are priced as input tokens; definitions show full + prompt-cached c
 
 </details>
 
+## Reproducing benchmarks
+
+The benchmark suite is intentionally runnable locally so context-reduction claims can be checked without sending MCP data to a third-party service.
+
+```bash
+npm install
+npm run bench
+```
+
+For a useful comparison, record the same workload with and without CtxSlim and compare:
+
+- tool-definition tokens per request
+- end-to-end latency
+- tool-output tokens
+- estimated input cost
+
+When publishing a benchmark, include the Node.js version, CtxSlim version, MCP SDK version, number of servers/tools, transport, and model/tokenizer used. This keeps results comparable as the stack changes.
+
+See issue #1 for the planned multi-transport and multi-scale benchmark matrix.
+
 ## FAQ
 
 <details>
