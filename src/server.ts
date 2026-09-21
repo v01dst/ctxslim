@@ -14,6 +14,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import type { ServerResult } from "@modelcontextprotocol/sdk/types.js";
 import { compressTool, truncateWords } from "./compressor.js";
+import { BudgetGuard, exactToolCost } from "./budget.js";
 import { matchesAny } from "./glob.js";
 import { compressToolResult } from "./output.js";
 import { loadImageEngine, processImages, resolveImageSpec } from "./images.js";
@@ -278,6 +279,7 @@ export class ContextSlimServer {
       }
     }
     this.index.rebuild(entries);
+    this.pinned.clear();
     this.resolved.clear();
     this.routeByExposedName.clear();
     this.toolsUpstream = entries.length;
@@ -388,17 +390,20 @@ export class ContextSlimServer {
       const allowlist = this.config.slim?.allowlist;
       selected = readyTools.filter((resolvedTool) => this.pinned.has(resolvedTool.key) || !allowlist || allowlist.includes(resolvedTool.server));
     } else {
-      const ranked = [...readyTools].sort((a, b) => this.scoreKey(b.key, searchScores, now) - this.scoreKey(a.key, searchScores, now));
-      const compressed = ranked.map((resolvedTool) => ({ resolvedTool, tool: this.compressedOf(resolvedTool.tool) }));
+      const ranked = [...readyTools].sort((a, b) => {
+        const pinDelta = Number(this.pinned.has(b.key)) - Number(this.pinned.has(a.key));
+        return pinDelta || this.scoreKey(b.key, searchScores, now) - this.scoreKey(a.key, searchScores, now);
+      });
+      const compressed = ranked.map((resolvedTool) => {
+        const tool = this.compressedOf(resolvedTool.tool);
+        return { resolvedTool, tool, cost: exactToolCost(tool), pinned: this.pinned.has(resolvedTool.key) };
+      });
+      const guard = new BudgetGuard<ToolDefinition>(this.contextBudget);
       const chosen: typeof compressed = [];
-      let budgetUsed = 0;
       for (const candidate of compressed) {
         if (chosen.length >= this.maxTools) break;
-        const cost = this.toolTokenCost(candidate.tool);
-        const pinned = this.pinned.has(candidate.resolvedTool.key);
-        if (pinned || chosen.length === 0 || budgetUsed + cost <= this.contextBudget) {
+        if (guard.admitPinned({ value: candidate.tool, cost: candidate.cost, pinned: candidate.pinned })) {
           chosen.push(candidate);
-          budgetUsed += cost;
         }
       }
       selected = chosen.map((item) => item.resolvedTool);
@@ -424,10 +429,7 @@ export class ContextSlimServer {
               }) as ToolDefinition
           )
         : exposed;
-    this.tokensAfter = listed.reduce((sum, tool) => {
-      const { tokensAfter } = compressTool(tool, Number.MAX_SAFE_INTEGER);
-      return sum + tokensAfter;
-    }, 0);
+    this.tokensAfter = listed.reduce((sum, tool) => sum + exactToolCost(tool), 0);
     if (this.mode !== "off") {
       for (const meta of META_TOOLS) {
         listed.push({ ...meta, name: `${this.metaPrefix}${meta.name}` });
