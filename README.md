@@ -206,3 +206,16 @@ Genuinely welcome — see [CONTRIBUTING.md](CONTRIBUTING.md). Small, strict, com
 <div align="center">
   <sub><b>Slim</b> lost the weight so your context doesn't have to.</sub>
 </div>
+
+
+## Development workflow
+
+Run the focused checks before opening a PR:
+
+```bash
+npm test
+npm run bench
+npm run lint
+```
+
+For context-budget changes, include the before/after token counts from `npm run bench` in the PR description. For routing or ranking changes, add a regression test covering the affected tool-selection behavior.
